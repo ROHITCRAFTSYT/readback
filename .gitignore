@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+
+# Datasets are downloaded by scripts/fetch_data.py and never committed (see README: Data and licenses)
+data/
+
+# Per-clip transcripts contain dataset text; only aggregate reports are committed
+results/raw/

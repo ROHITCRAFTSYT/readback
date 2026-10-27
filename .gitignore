@@ -8,6 +8,9 @@ __pycache__/
 # Datasets are downloaded by scripts/fetch_data.py and never committed (see README: Data and licenses).
 # data/gold/ holds hand labels only (ids, callsigns, values), no transcript text or audio.
 data/raw/
+# ATCO2 blind-test labels: ATCO2's terms forbid sharing derived data. The committed
+# data/gold/atco2-blind.manifest.json holds their hash instead.
+data/blind/
 
 # Per-clip transcripts contain dataset text; only aggregate reports are committed
 results/raw/

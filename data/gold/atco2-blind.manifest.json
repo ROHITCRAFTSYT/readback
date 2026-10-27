@@ -1,0 +1,23 @@
+{
+  "dataset": "ATCO2 1h test set (atco2-1h)",
+  "labels": "data/blind/atco2-blind.jsonl",
+  "labels_sha256": "087c099c7a4691cca9dc0a4f52fce95d6e97e9b0ff5c2f37fdb3bebe4da71a8f",
+  "transmissions": 265,
+  "sampled": 300,
+  "left_out_ambiguous": 35,
+  "sample_seed": "atco2-blind-2026",
+  "airports": {
+    "LSGS": 75,
+    "LSZB": 49,
+    "LSZH": 46,
+    "YSSY": 31,
+    "LZIB": 29,
+    "LKPR": 26,
+    "LKTB": 9
+  },
+  "items": 150,
+  "with_callsign": 234,
+  "generator_version": 2,
+  "generator_sha256": "1599a3e11d2ab4f00c2613f91acd52475729d065b3f675d7076eae917eb46e36",
+  "frozen": "2026-10-27T10:47:33Z"
+}

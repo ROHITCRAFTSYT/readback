@@ -33,6 +33,7 @@ flowchart LR
 | Oct 27 | Clearance schema, rule-based clearance parser, readback comparator, Muse Spark parser (structured output), and a text-level evaluation on 432 real controller/pilot exchanges: 98.4% of planted readback errors caught at about 98% precision. |
 | Oct 27 | ADS-B conformance checks (level bust, wrong direction, level-off short, heading, squawk), the live frequency monitor, a simulated Bengaluru approach with planted errors and VHF-style radio audio, and a radar-scope web UI with replay and live OpenSky traffic. |
 | Oct 27 | Readback's own clearance parser: a small neural tagger that trains itself continuously on a four-level synthetic curriculum, is tested on 287 hand-labeled real transmissions, and reports to a live training dashboard and [`TRAINING.md`](TRAINING.md). |
+| Oct 27 | A blind real-radio test for the tagger: 265 hand-labeled ATCO2 transmissions from seven airports, frozen by hash before any parser saw them. |
 
 Everything in this repository was written during the hackathon.
 
@@ -109,6 +110,8 @@ Training runs in rounds (`tagger/train.py`). Each round, a candidate trains from
 
 The real-radio test is 287 UWB-ATCC transmissions from Prague, labeled by hand (`data/gold/`, labels only). Half is a dev set that can block a promotion; the other half is only ever reported. The tagger never trains on either.
 
+That set isn't fully blind, because the generator's phrasing was shaped after reading UWB transcripts. So there is a second, **blind** test: 265 ATCO2 transmissions from seven airports (Sion, Bern, Zurich, Sydney, Bratislava, Prague, Brno). They were sampled from clips never looked at during development, labeled by hand before any parser ran on them, and frozen (`scripts/freeze_blind.py`). The commit that froze them comes before any code that scores them. ATCO2's terms don't allow sharing derived data, so the labels stay local (`data/blind/`, gitignored). [`data/gold/atco2-blind.manifest.json`](data/gold/atco2-blind.manifest.json) is committed instead, with the SHA-256 of the labels and of the generator at freeze time. The trainer scores each new champion on the blind set only as a whole, and never uses it for promotion, focus, levels or optimality. The dashboard and `TRAINING.md` show whether the generator has changed since the freeze.
+
 ```bash
 uv run python scripts/train_tagger.py --hours 1     # train for an hour, resuming the run
 uv run python scripts/autostart.py install          # Windows: keep training forever, across reboots
@@ -131,7 +134,7 @@ uv run ruff check .
 
 The evaluation audio is downloaded at run time and never committed. Only aggregate metrics are published.
 
-- **ATCO2 test set (1 h)**: real VHF recordings from Czech airports, from the [ATCO2 project](https://www.atco2.org/data) (Zuluaga-Gomez et al., 2022, [arXiv:2211.04054](https://arxiv.org/abs/2211.04054)). Used under the ATCO2 end-user data agreement, via the [Hugging Face mirror](https://huggingface.co/datasets/Jzuluaga/atco2_corpus_1h).
+- **ATCO2 test set (1 h)**: real VHF recordings from Czech airports, from the [ATCO2 project](https://www.atco2.org/data) (Zuluaga-Gomez et al., 2022, [arXiv:2211.04054](https://arxiv.org/abs/2211.04054)). Used under the ATCO2 end-user data agreement, via the [Hugging Face mirror](https://huggingface.co/datasets/Jzuluaga/atco2_corpus_1h). The blind-test labels derived from it are kept local; only their hash and aggregate scores are published.
 - **UWB-ATCC**: University of West Bohemia ATC corpus ([LINDAT](https://lindat.mff.cuni.cz/repository/xmlui/handle/11858/00-097C-0000-0001-CCA1-0)), CC BY-NC-SA 4.0, via the [Hugging Face mirror](https://huggingface.co/datasets/Jzuluaga/uwb_atcc). The hand labels in `data/gold/uwb-atcc-gold.jsonl` (utterance ids, callsigns and clearance values, no transcript text) are derived from it and shared under the same CC BY-NC-SA 4.0 license.
 
 Code is MIT licensed. Readback is a research prototype, not a certified air traffic management tool.

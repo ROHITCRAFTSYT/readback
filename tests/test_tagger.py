@@ -7,7 +7,7 @@ from readback.normalize import canonical
 from readback.tagger import train as train_mod
 from readback.tagger.decode import decode, spans, tidy
 from readback.tagger.evaluate import same, score
-from readback.tagger.gold import split_of
+from readback.tagger.gold import BlindChanged, GoldExample, blind_info, load_blind, sha256, split_of
 from readback.tagger.lock import FileLock, Locked
 from readback.tagger.synth import MAX_LEVEL, Generator, dataset
 
@@ -112,6 +112,12 @@ def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
     monkeypatch.setattr(train_mod, "load_gold", lambda: [])
     monkeypatch.setattr(train_mod.Trainer, "_baseline", lambda self: {"rules": {}})
     monkeypatch.setattr(train_mod, "dataset", _small_dataset)
+    blind = [GoldExample(f"b{i}", " ".join(e.tokens), e.tokens, e.clearance, "blind")
+             for i, e in enumerate(dataset(3, 20, "fake-blind"))]  # fmt: skip
+    monkeypatch.setattr(train_mod, "load_blind", lambda: blind)
+    monkeypatch.setattr(train_mod, "blind_info", lambda: {
+        "transmissions": 20, "airports": {"LSGS": 20}, "frozen": "2026-10-27T00:00:00Z",
+        "generator_unchanged": True})  # fmt: skip
     state = tmp_path / "run"
     t = train_mod.Trainer(state)
     entry = t.round()
@@ -119,6 +125,8 @@ def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
     assert (state / "champion.pt").exists()
     status = json.loads((state / "status.json").read_text())
     assert status["round"] == 1 and not status["optimal"]
+    assert status["champion"]["blind"]["n"] == 20 and status["blind"]["transmissions"] == 20
+    assert "blind" in entry["champion"] and "blind" not in entry["candidate"]
     again = train_mod.Trainer(state)  # resumes
     assert again.round()["round"] == 2
 
@@ -126,6 +134,7 @@ def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
 
     page = render(state)
     assert "# Tagger training" in page and "| 2 | 1 |" in page
+    assert "The **blind** test is 20 ATCO2 transmissions (LSGS)" in page
 
 
 def _small_dataset(level, n, seed, focus=None):
@@ -143,6 +152,28 @@ def test_focus_weights_only_controllable_knobs():
 def test_gold_split_is_stable():
     assert split_of("uwb-atcc_X_1_2_PI") == split_of("uwb-atcc_X_1_2_PI")
     assert {split_of(f"id{i}") for i in range(20)} == {"dev", "test"}
+
+
+def test_blind_labels_must_match_the_frozen_hash(tmp_path):
+    labels, corpus, manifest = tmp_path / "b.jsonl", tmp_path / "c.parquet", tmp_path / "m.json"
+    assert load_blind(labels, corpus, manifest) == []  # nothing on this machine
+    labels.write_text('{"id": "x", "callsign": null, "items": []}\n', encoding="utf-8")
+    corpus.write_bytes(b"")
+    manifest.write_text(json.dumps({"labels_sha256": "0" * 64}), encoding="utf-8")
+    with pytest.raises(BlindChanged):
+        load_blind(labels, corpus, manifest)
+
+
+def test_blind_info_tracks_the_generator(tmp_path):
+    synth, manifest = tmp_path / "synth.py", tmp_path / "m.json"
+    synth.write_bytes(b"VERSION = 2\r\n")
+    manifest.write_text(json.dumps({"generator_sha256": sha256(synth)}), encoding="utf-8")
+    assert blind_info(manifest, synth)["generator_unchanged"]
+    synth.write_bytes(b"VERSION = 2\n")  # line endings don't count as a change
+    assert blind_info(manifest, synth)["generator_unchanged"]
+    synth.write_bytes(b"VERSION = 3\n")
+    assert not blind_info(manifest, synth)["generator_unchanged"]
+    assert blind_info(tmp_path / "none.json", synth) is None
 
 
 def test_lock_is_exclusive(tmp_path):

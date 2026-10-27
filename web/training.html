@@ -39,10 +39,20 @@
     </section>
 
     <section class="kpis" aria-label="Champion against the rule-based parser">
-      <div class="kpi"><h3>Real radio · item F1</h3><div class="hero" id="k-f1">–</div><p id="k-f1-vs"></p></div>
-      <div class="kpi"><h3>Real radio · exactly right</h3><div class="hero" id="k-exact">–</div><p id="k-exact-vs"></p></div>
-      <div class="kpi"><h3>Real radio · callsign right</h3><div class="hero" id="k-cs">–</div><p id="k-cs-vs"></p></div>
+      <div class="kpi"><h3>Prague, held-out · item F1</h3><div class="hero" id="k-f1">–</div><p id="k-f1-vs"></p></div>
+      <div class="kpi"><h3>Prague, held-out · exactly right</h3><div class="hero" id="k-exact">–</div><p id="k-exact-vs"></p></div>
+      <div class="kpi"><h3>Prague, held-out · callsign right</h3><div class="hero" id="k-cs">–</div><p id="k-cs-vs"></p></div>
       <div class="kpi"><h3 id="k-syn-title">Synthetic · exactly right</h3><div class="hero" id="k-syn">–</div><p id="k-syn-vs"></p></div>
+    </section>
+
+    <section class="panel blind" id="blind-panel" hidden>
+      <h2>Blind test <span class="hint" id="blind-hint"></span></h2>
+      <div class="kpis three">
+        <div class="kpi"><h3>Blind · item F1</h3><div class="hero" id="b-f1">–</div><p id="b-f1-vs"></p></div>
+        <div class="kpi"><h3>Blind · exactly right</h3><div class="hero" id="b-exact">–</div><p id="b-exact-vs"></p></div>
+        <div class="kpi"><h3>Blind · callsign right</h3><div class="hero" id="b-cs">–</div><p id="b-cs-vs"></p></div>
+      </div>
+      <p class="blind-note" id="blind-note"></p>
     </section>
 
     <section class="panel chart-panel">
@@ -71,8 +81,8 @@
     <div class="two">
       <section class="panel">
         <h2>Daily fresh checks <span class="hint">new date-seeded test set each day</span></h2>
-        <table class="tbl"><thead><tr><th>Date</th><th>Champion</th><th>Synthetic exact</th><th>Real F1</th></tr></thead>
-          <tbody id="checks"><tr><td colspan="4" class="empty">No daily check yet.</td></tr></tbody></table>
+        <table class="tbl"><thead><tr><th>Date</th><th>Champion</th><th>Synthetic exact</th><th>Real F1</th><th>Blind F1</th></tr></thead>
+          <tbody id="checks"><tr><td colspan="5" class="empty">No daily check yet.</td></tr></tbody></table>
       </section>
       <section class="panel">
         <h2>Recent rounds</h2>
@@ -83,7 +93,7 @@
   </main>
 
   <footer class="foot">
-    Trained on synthetic transmissions only; the real UWB-ATCC transmissions (CC BY-NC-SA 4.0) are used for testing. Refreshes every 20 s.
+    Trained on synthetic transmissions only; the real UWB-ATCC (CC BY-NC-SA 4.0) and ATCO2 transmissions are used only for testing. Refreshes every 20 s.
   </footer>
   <script src="/static/training.js"></script>
 </body>

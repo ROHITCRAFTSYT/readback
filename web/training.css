@@ -44,6 +44,14 @@ a.tab { text-decoration: none; display: inline-block; }
 .tip .r span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .tip .r b { font: 500 12px var(--mono); color: var(--text); }
 
+.blind { border-color: var(--phosphor-dim); }
+.blind .kpis { padding: 12px 14px 0; }
+.kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.blind .kpi { background: var(--panel-2); }
+.blind-note { margin: 0; padding: 10px 14px 12px; font-size: 12px; color: var(--muted); }
+.blind-note .ok { color: var(--good); }
+.blind-note .warn { color: var(--warn); }
+
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .kinds { padding: 10px 14px 14px; display: grid; gap: 10px; }
 .kind-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: center; font-size: 12px; }
@@ -78,6 +86,7 @@ a.tab { text-decoration: none; display: inline-block; }
 @media (max-width: 900px) {
   .train { padding: 12px 16px 20px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis.three { grid-template-columns: 1fr; }
   .two { grid-template-columns: 1fr; }
   .kind-row { grid-template-columns: 110px minmax(0, 1fr); }
   .chart-wrap { height: 260px; }

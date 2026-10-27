@@ -51,6 +51,7 @@ def render(state_dir: Path) -> str:
         "|---|---|---|---|---|",
     ]
     for key, name in (
+        ("blind", "**Blind: ATCO2, 7 airports**"),
         ("gold_test", "Real radio, held-out half"),
         ("gold_dev", "Real radio, dev half"),
     ):
@@ -73,6 +74,20 @@ def render(state_dir: Path) -> str:
         "transmissions are 287 UWB-ATCC clips from Prague, labeled by hand "
         "(`data/gold/`); the held-out half never influences training.",
         "",
+    ]
+    if blind := st.get("blind"):
+        airports = ", ".join(blind["airports"])
+        lines += [
+            f"The **blind** test is {blind['transmissions']} ATCO2 transmissions ({airports}),",
+            f"labeled by hand and frozen on {blind['frozen'][:10]} before any parser saw them. The",
+            "generator was written without them and is never changed because of them, so this",
+            "is the honest estimate of accuracy on unseen radio. The labels stay local (ATCO2",
+            "terms); `data/gold/atco2-blind.manifest.json` holds their hash.",
+            "Generator unchanged since the freeze: "
+            + ("**yes**." if blind["generator_unchanged"] else "**no** (see git history)."),
+            "",
+        ]
+    lines += [
         "## Levels",
         "",
     ]
@@ -97,12 +112,13 @@ def render(state_dir: Path) -> str:
     if checks:
         lines += ["", "## Daily fresh checks", "",
                   "A new date-seeded level-3 test set every day, plus the real transmissions.", "",
-                  "| Date | Champion round | Synthetic exact | Real (held-out) item F1 |",
-                  "|---|---|---|---|"]  # fmt: skip
+                  "| Date | Champion round | Synthetic exact | Real (held-out) item F1 "
+                  "| Blind item F1 |", "|---|---|---|---|---|"]  # fmt: skip
         for c in checks[-14:]:
             lines.append(
                 f"| {c['seed']} | {c.get('champion_round', '')} | {_pct(c['synthetic']['exact'])} "
-                f"| {_pct(c.get('gold_test', {}).get('item_f1'))} |"
+                f"| {_pct(c.get('gold_test', {}).get('item_f1'))} "
+                f"| {_pct(c.get('blind', {}).get('item_f1'))} |"
             )
     lines += ["", "## Recent rounds", "",
               "| Round | Level | Candidate exact | Real dev F1 | Promoted | Note |",

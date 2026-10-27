@@ -58,9 +58,37 @@ function renderStatus() {
   vs("k-exact-vs", t.exact, r.exact, "rules");
   $("k-cs").textContent = pct(t.callsign);
   vs("k-cs-vs", t.callsign, r.callsign, "rules");
+  renderBlind();
   $("k-syn-title").textContent = `Synthetic level ${st.level} · exactly right`;
   $("k-syn").textContent = pct(champ.val.exact);
   vs("k-syn-vs", champ.val.exact, (rules[`val_${st.level}`] || {}).exact, "rules");
+}
+
+const AIRPORTS = {
+  LSGS: "Sion", LSZB: "Bern", LSZH: "Zurich", YSSY: "Sydney", LZIB: "Bratislava", LKPR: "Prague", LKTB: "Brno",
+};
+
+function renderBlind() {
+  const st = data.status;
+  const b = st.champion.blind;
+  const info = st.blind;
+  $("blind-panel").hidden = !(b && info);
+  if (!b || !info) return;
+  const r = st.baseline.rules.blind || {};
+  const names = Object.keys(info.airports).map((a) => AIRPORTS[a] || a);
+  $("blind-hint").textContent = `${info.transmissions} ATCO2 transmissions from ${names.length} airports, never used for training or tuning`;
+  $("b-f1").textContent = pct(b.item_f1);
+  vs("b-f1-vs", b.item_f1, r.item_f1, "rules");
+  $("b-exact").textContent = pct(b.exact);
+  vs("b-exact-vs", b.exact, r.exact, "rules");
+  $("b-cs").textContent = pct(b.callsign);
+  vs("b-cs-vs", b.callsign, r.callsign, "rules");
+  const note = $("blind-note");
+  note.textContent = "";
+  note.append(`${names.join(", ")}. Labeled by hand and frozen on ${info.frozen.slice(0, 10)}, before any parser saw them; only the hash is published. `);
+  note.append(info.generator_unchanged
+    ? el("span", "ok", "Generator unchanged since the freeze.")
+    : el("span", "warn", "Generator changed since the freeze (see git history)."));
 }
 
 function renderLevels() {
@@ -126,7 +154,8 @@ function renderTables() {
     for (const c of data.checks.slice(-10).reverse()) {
       const tr = el("tr");
       tr.append(el("td", null, c.seed), el("td", null, `r${c.champion_round ?? "?"}`),
-        el("td", null, pct(c.synthetic.exact)), el("td", null, pct((c.gold_test || {}).item_f1)));
+        el("td", null, pct(c.synthetic.exact)), el("td", null, pct((c.gold_test || {}).item_f1)),
+        el("td", null, pct((c.blind || {}).item_f1)));
       checks.append(tr);
     }
   }

@@ -17,6 +17,10 @@ hand-labeled real transmissions, reaches GOLD_BAR item F1 and beats the rule-bas
 Training carries on after that on level 4, a stress level with every kind of noise at once,
 under the same promotion rule.
 
+The ATCO2 blind test (`gold.load_blind`) is scored for every new champion and reported next
+to the rest, but nothing here reads it to decide anything: not promotion, focus, levels or
+optimality.
+
 All state lives in one directory (status.json, log.jsonl, champion.pt), so a run can be
 stopped and resumed at any round.
 """
@@ -34,7 +38,7 @@ import torch
 from readback import rules
 from readback.tagger.decode import TAGS, tidy
 from readback.tagger.evaluate import same, score
-from readback.tagger.gold import load_gold
+from readback.tagger.gold import blind_info, load_blind, load_gold
 from readback.tagger.model import Tagger
 from readback.tagger.synth import MAX_LEVEL, TELEPHONY, VERSION, dataset
 
@@ -77,12 +81,15 @@ class Trainer:
         self.replay: list = []
         gold = load_gold()
         self.gold = {s: [g for g in gold if g.split == s] for s in ("dev", "test")}
+        self.blind = load_blind()
         self._val: dict[int, list] = {}
         if self.status_path.exists() and self.champion_path.exists():
             self.status = json.loads(self.status_path.read_text(encoding="utf-8"))
             self.champion = Tagger.load(self.champion_path)
             if self.status.get("generator_version") != VERSION:
                 self._rescore(f"generator changed to version {VERSION}")
+            elif self.blind and "blind" not in self.status["champion"]:
+                self._rescore("blind test added")
         else:
             self._start()
 
@@ -112,7 +119,7 @@ class Trainer:
             },  # fmt: skip
         }
         self.status["baseline"] = self._baseline()
-        self.status["champion"].update(self._evaluate(self.champion))
+        self.status["champion"].update(self._evaluate(self.champion), **self._blind(self.champion))
         self._save_champion()
         self._write_status()
 
@@ -128,6 +135,14 @@ class Trainer:
             for split, rows in self.gold.items():
                 preds = [tidy(rules.parse(g.text, designators)) for g in rows]
                 out[f"gold_{split}"] = _slim(score(preds, [g.clearance for g in rows]))
+        if self.blind:
+            from readback.tagger.gold import BLIND_CORPUS
+
+            designators = discover_designators(
+                t.text for t in load_transcripts(BLIND_CORPUS, "atco2-1h")
+            )
+            preds = [tidy(rules.parse(g.text, designators)) for g in self.blind]
+            out["blind"] = _slim(score(preds, [g.clearance for g in self.blind]))
         designators = {w for w in TELEPHONY if " " not in w}
         for lvl in range(1, MAX_LEVEL + 1):
             val = self.val(lvl)
@@ -153,9 +168,13 @@ class Trainer:
                 out[f"gold_{split}"] = _slim(self._score(tagger, rows))
         return out
 
+    def _blind(self, tagger: Tagger) -> dict:
+        """The blind score, for reporting only."""
+        return {"blind": _slim(self._score(tagger, self.blind))} if self.blind else {}
+
     def _rescore(self, why: str) -> None:
         self.status["generator_version"] = VERSION
-        self.status["champion"].update(self._evaluate(self.champion))
+        self.status["champion"].update(self._evaluate(self.champion), **self._blind(self.champion))
         self.status["baseline"] = self._baseline()
         self._log({"event": "rescore", "why": why, "champion": self.status["champion"]})
         self._write_status()
@@ -228,7 +247,7 @@ class Trainer:
         promoted = better and dev_ok
         if promoted:
             self.champion = candidate
-            st["champion"] = {"round": rnd, **cand}
+            st["champion"] = {"round": rnd, **cand, **self._blind(candidate)}
             st["stagnant"] = 0
             self._save_champion()
         else:
@@ -276,7 +295,8 @@ class Trainer:
             "lr": st["lr"], "promoted": promoted, "candidate": cand,
             "champion_round": st["champion"]["round"],
             "champion": {k: st["champion"][k].get(m) for k, m in (
-                ("val", "exact"), ("gold_dev", "item_f1"), ("gold_test", "item_f1"))
+                ("val", "exact"), ("gold_dev", "item_f1"), ("gold_test", "item_f1"),
+                ("blind", "item_f1"))
                 if k in st["champion"]},
             "probe_exact": round(m["exact"], 4),
             "weak": sorted(st["focus"], key=st["focus"].get, reverse=True)[:5],
@@ -305,6 +325,9 @@ class Trainer:
 
     def _write_status(self) -> None:
         self.status["updated"] = now()
+        if self.blind and (info := blind_info()):
+            keep = ("transmissions", "airports", "frozen", "generator_unchanged")
+            self.status["blind"] = {k: info[k] for k in keep}
         tmp = self.status_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.status, indent=2), encoding="utf-8")
         tmp.replace(self.status_path)
@@ -315,7 +338,7 @@ class Trainer:
 
 
 def fresh_check(tagger: Tagger, seed: str) -> dict:
-    """A brand-new level-3 test set (date-seeded) plus the real-radio gold sets."""
+    """A brand-new level-3 test set (date-seeded) plus the real-radio gold and blind sets."""
     exs = dataset(3, VAL_N, f"check:{seed}")
     preds = tagger.parse_tokens([e.tokens for e in exs])
     out = {"seed": seed, "synthetic": _slim(score(preds, [e.clearance for e in exs]))}
@@ -325,6 +348,9 @@ def fresh_check(tagger: Tagger, seed: str) -> dict:
         if rows:
             p = tagger.parse_tokens([g.tokens for g in rows])
             out[f"gold_{split}"] = _slim(score(p, [g.clearance for g in rows]))
+    if blind := load_blind():
+        p = tagger.parse_tokens([g.tokens for g in blind])
+        out["blind"] = _slim(score(p, [g.clearance for g in blind]))
     return out
 
 

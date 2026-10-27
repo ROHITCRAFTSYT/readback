@@ -20,3 +20,6 @@ scenarios/
 training/logs/
 training/champion.pt
 training/*.tmp
+
+# Fine-tuning data written by scripts/export_sft.py (regenerated from the seed)
+data/sft/

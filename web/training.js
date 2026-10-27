@@ -93,7 +93,7 @@ function renderKinds() {
   legend.textContent = "";
   for (const [name, color] of [["Tagger", "--series-1"], ["Rule-based parser", "--series-2"]]) {
     const s = el("span");
-    const sw = el("i", "swatch bar");
+    const sw = el("i", "swatch box");
     sw.style.background = css(color);
     s.append(sw, name);
     legend.append(s);
@@ -254,11 +254,26 @@ function drawCurve() {
   line("rules", "--series-2", true);
   line("val", "--series-3");
   line("test", "--series-1");
-  // direct label at the line ends
+  // end-point markers, and a direct label on the headline line
   const last = points.at(-1);
+  for (const [key, color] of [["rules", "--series-2"], ["val", "--series-3"], ["test", "--series-1"]]) {
+    if (last[key] == null) continue;
+    ctx.fillStyle = css(color);
+    ctx.strokeStyle = css("--panel");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(X(last.round), Y(last[key]), 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.font = "12px 'IBM Plex Mono', monospace";
   ctx.fillStyle = css("--text");
-  if (last.test != null) ctx.fillText(pct(last.test), Math.min(X(last.round) - 50, w - pad.r - 50), Y(last.test) - 8);
+  if (last.test != null) {
+    const label = pct(last.test);
+    const tw = ctx.measureText(label).width;
+    const lx = X(last.round) + 8 + tw < w - pad.r ? X(last.round) + 8 : X(last.round) - 8 - tw;
+    ctx.fillText(label, lx, Y(last.test) - 8);
+  }
   canvas._geom = { X, Y, pad, w, h };
 }
 

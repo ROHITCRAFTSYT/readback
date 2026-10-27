@@ -75,3 +75,20 @@ def test_audio_route_rejects_traversal():
     client = TestClient(app)
     assert client.get("/audio/..%2Fpyproject.toml").status_code == 404
     assert client.get("/audio/missing.wav").status_code == 404
+
+
+def test_training_api(tmp_path, monkeypatch):
+    import readback.server as server
+
+    monkeypatch.setattr(server, "TRAINING", tmp_path)
+    client = TestClient(app)
+    assert client.get("/api/training").status_code == 404
+    (tmp_path / "status.json").write_text(json.dumps({"round": 2}))
+    entry = {"round": 1, "candidate": {"val": {"exact": 0.5, "kind_f1": {"speed": 1.0}}}}
+    (tmp_path / "log.jsonl").write_text(
+        json.dumps(entry) + "\n" + json.dumps({"event": "x"}) + "\n"
+    )
+    body = client.get("/api/training").json()
+    assert body["status"] == {"round": 2} and body["checks"] == []
+    assert body["log"] == [{"round": 1, "candidate": {"val": {"exact": 0.5}}}]
+    assert client.get("/training").status_code == 200

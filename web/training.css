@@ -34,7 +34,7 @@ a.tab { text-decoration: none; display: inline-block; }
 .swatch { width: 14px; height: 0; border-top: 2px solid; display: inline-block; }
 .swatch.dashed { border-top-style: dashed; }
 .swatch.dot { width: 8px; height: 8px; border: 0; border-radius: 50%; }
-.swatch.bar { width: 10px; height: 10px; border: 0; border-radius: 2px; }
+.swatch.box { width: 10px; height: 10px; border: 0; border-radius: 2px; }
 
 .chart-wrap { position: relative; height: 320px; margin: 4px 6px 8px; }
 #curve { width: 100%; height: 100%; display: block; }
@@ -81,5 +81,7 @@ a.tab { text-decoration: none; display: inline-block; }
   .two { grid-template-columns: 1fr; }
   .kind-row { grid-template-columns: 110px minmax(0, 1fr); }
   .chart-wrap { height: 260px; }
+  .tbl th, .tbl td { padding: 6px 8px; }
+  .tbl { font-size: 11px; }
   .kpi .hero { font-size: 24px; }
 }

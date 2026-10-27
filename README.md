@@ -30,6 +30,7 @@ flowchart LR
 | Date | Work |
 |---|---|
 | Oct 27 | Project scaffold. Voice Transcribe client, ATC text normalizer, recognition metrics, and the day-1 go/no-go test of Voice Transcribe on real ATC radio. |
+| Oct 27 | Clearance schema, rule-based clearance parser, readback comparator, Muse Spark parser (structured output), and a text-level evaluation on 432 real controller/pilot exchanges: 98.4% of planted readback errors caught at about 98% precision. |
 
 Everything in this repository was written during the hackathon.
 
@@ -53,6 +54,25 @@ uv run python scripts/spike_asr.py             # 100 clips x 3 keyword condition
 ```
 
 The report goes to [`results/spike-asr.md`](results/spike-asr.md). It scores word error rate, digit error rate (altitudes, headings, frequencies) and callsign accuracy. Recognizer output and references are compared in a canonical form, so `CSA1DZ descend FL100` matches `csa one delta zulu descend flight level one hundred`.
+
+## Readback error detection
+
+Each transmission is parsed into a structured clearance (callsign plus items such as `flight_level 100`, `heading 240 left`, `frequency 119.605`, `cleared_to_land 27l`), and the pilot's readback is compared with the controller's instruction. A wrong value or callsign is an error. An omitted item is a warning, because pilots legitimately shorten readbacks.
+
+There are two parsers: a fast rule-based one for standard ICAO phraseology (`src/readback/rules.py`), and Muse Spark with a strict JSON schema for everything else (`src/readback/llm.py`).
+
+```bash
+uv run python scripts/eval_readback.py                  # rule-based parser
+uv run python scripts/eval_readback.py --parser both    # also Muse Spark (needs the API key)
+```
+
+The evaluation pairs each controller instruction in UWB-ATCC with the pilot's reply, then plants one readback error per pair by changing a digit the pilot echoed (flight level, heading, squawk, frequency, runway) or a character of the callsign. Those are errors by construction, so recall is exact. Results: [`results/readback-eval.md`](results/readback-eval.md).
+
+| Parser | Real pairs | Flagged | Planted errors | Recall | Precision (approx.) |
+|---|---|---|---|---|---|
+| Rule-based | 432 | 2.1% | 307 | 98.4% | 98.1% |
+
+Several of the flagged real pairs look like genuine readback errors in the recordings: for example, runway 31 read back as 13, and squawk 1404 read back as 1402.
 
 ## Tests
 

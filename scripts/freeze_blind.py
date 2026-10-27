@@ -2,7 +2,7 @@
 
     uv run python scripts/freeze_blind.py
 
-The labels (data/blind/atco2-blind.jsonl) stay on this machine because ATCO2's terms don't
+The labels (data/blind/, the current set) stay on this machine because ATCO2's terms don't
 allow sharing derived data. The manifest records their SHA-256 and the generator's, so the
 commit that adds it shows when the labels were fixed and which generator they were scored
 against. load_blind() refuses labels that no longer match. This runs once; --force exists
@@ -25,7 +25,7 @@ from readback.tagger.synth import VERSION
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--sampled", type=int, default=300, help="clips drawn for labeling")
-    ap.add_argument("--seed", default="atco2-blind-2026")
+    ap.add_argument("--seed", default="atco2-blind-2-2026")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
     if BLIND_MANIFEST.exists() and not args.force:
@@ -34,7 +34,7 @@ def main() -> int:
     airports = collections.Counter(describe(r["id"])[0].split("_")[0] for r in rows)
     manifest = {
         "dataset": "ATCO2 1h test set (atco2-1h)",
-        "labels": "data/blind/atco2-blind.jsonl",
+        "labels": f"data/blind/{BLIND.name}",
         "labels_sha256": sha256(BLIND),
         "transmissions": len(rows),
         "sampled": args.sampled,

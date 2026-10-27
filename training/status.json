@@ -1,88 +1,101 @@
 {
   "started": "2026-10-27T09:02:50Z",
   "generator_version": 2,
-  "round": 1,
-  "level": 2,
+  "round": 22,
+  "level": 3,
   "levels_passed": [
     {
       "level": 1,
       "round": 1,
       "at": "2026-10-27T09:06:59Z"
+    },
+    {
+      "level": 2,
+      "round": 2,
+      "at": "2026-10-27T09:12:32Z"
     }
   ],
   "optimal": false,
   "optimal_since": null,
-  "lr": 0.001,
+  "lr": 0.0005,
   "stagnant": 0,
   "focus": {
-    "kind:cleared_for_takeoff": 2.25,
-    "kind:frequency": 1.78,
-    "kind:hold_short": 2.48,
-    "kind:line_up": 1.68,
-    "noise:distractor": 1.21
+    "kind:altitude": 1.02,
+    "kind:cleared_for_takeoff": 1.23,
+    "kind:cleared_to_land": 1.75,
+    "kind:flight_level": 1.08,
+    "kind:frequency": 1.13,
+    "kind:line_up": 1.46,
+    "kind:qnh": 1.19,
+    "noise:greeting": 1.27,
+    "noise:misheard": 1.03,
+    "noise:station": 1.11,
+    "noise:truncate": 1.8
   },
-  "examples_seen": 16000,
-  "train_seconds": 207.3,
+  "examples_seen": 437320,
+  "train_seconds": 3337.6,
   "champion": {
-    "round": 1,
+    "round": 22,
     "val": {
       "n": 2000,
-      "exact": 0.8645,
-      "item_precision": 0.9735,
-      "item_recall": 0.9205,
-      "item_f1": 0.9463,
-      "callsign": 0.9475,
+      "exact": 0.9625,
+      "item_precision": 0.9894,
+      "item_recall": 0.9945,
+      "item_f1": 0.9919,
+      "callsign": 0.9795,
       "kind_f1": {
-        "altitude": 0.92,
-        "cleared_for_takeoff": 0.969,
-        "cleared_to_land": 0.99,
-        "direct_to": 0.933,
-        "flight_level": 0.957,
-        "frequency": 0.87,
-        "heading": 0.98,
-        "hold_short": 0.96,
-        "line_up": 0.963,
-        "qnh": 0.98,
-        "runway": 0.928,
-        "speed": 0.908,
-        "squawk": 0.991
+        "altitude": 0.998,
+        "cleared_for_takeoff": 0.982,
+        "cleared_to_land": 0.975,
+        "direct_to": 0.983,
+        "flight_level": 0.998,
+        "frequency": 0.994,
+        "heading": 0.993,
+        "hold_short": 0.987,
+        "line_up": 0.991,
+        "qnh": 1.0,
+        "runway": 0.978,
+        "speed": 1.0,
+        "squawk": 1.0
       }
     },
     "gold_dev": {
       "n": 149,
-      "exact": 0.8322,
-      "item_precision": 0.9604,
-      "item_recall": 0.9604,
-      "item_f1": 0.9604,
-      "callsign": 0.8658,
+      "exact": 0.8591,
+      "item_precision": 0.9333,
+      "item_recall": 0.9703,
+      "item_f1": 0.9515,
+      "callsign": 0.8993,
       "kind_f1": {
         "altitude": 1.0,
-        "cleared_for_takeoff": 0.984,
-        "cleared_to_land": 0.976,
+        "cleared_for_takeoff": 1.0,
+        "cleared_to_land": 0.878,
+        "direct_to": 0.0,
         "flight_level": 1.0,
-        "frequency": 0.947,
-        "hold_short": 0.875,
-        "line_up": 0.947,
+        "frequency": 1.0,
+        "hold_short": 1.0,
+        "line_up": 0.974,
         "qnh": 1.0,
         "runway": 0.952
       }
     },
     "gold_test": {
       "n": 138,
-      "exact": 0.8841,
-      "item_precision": 0.9706,
-      "item_recall": 0.9519,
-      "item_f1": 0.9612,
-      "callsign": 0.9203,
+      "exact": 0.8986,
+      "item_precision": 0.9537,
+      "item_recall": 0.9904,
+      "item_f1": 0.9717,
+      "callsign": 0.913,
       "kind_f1": {
         "altitude": 1.0,
-        "cleared_for_takeoff": 0.973,
+        "cleared_for_takeoff": 1.0,
         "cleared_to_land": 0.98,
-        "frequency": 0.966,
-        "hold_short": 0.857,
+        "frequency": 1.0,
+        "hold_short": 0.714,
         "line_up": 1.0,
-        "runway": 0.917,
-        "speed": 0.889,
+        "qnh": 0.0,
+        "runway": 1.0,
+        "speed": 1.0,
         "squawk": 1.0
       }
     }
@@ -227,5 +240,5 @@
       }
     }
   },
-  "updated": "2026-10-27T09:07:14Z"
+  "updated": "2026-10-27T10:04:53Z"
 }

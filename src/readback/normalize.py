@@ -75,6 +75,23 @@ def _split_token(token: str) -> list[str]:
     return pieces
 
 
+def _below_thousand(words: list[str], j: int) -> tuple[list[str], int]:
+    """Digits for what follows "thousand": "four thousand five hundred" is 4500, not 4000500.
+    Returns the three digits and how many words they used."""
+    value, used = 0, 0
+    if j + 1 < len(words) and words[j] in DIGITS and words[j + 1] == "hundred":
+        value, used = 100 * int(DIGITS[words[j]]), 2
+    w = words[j + used] if j + used < len(words) else None
+    if w in TEENS:
+        value, used = value + int(TEENS[w]), used + 1
+    elif w in TENS:
+        value, used = value + 10 * int(TENS[w]), used + 1
+        unit = words[j + used] if j + used < len(words) else None
+        if unit in DIGITS and DIGITS[unit] != "0":
+            value, used = value + int(DIGITS[unit]), used + 1
+    return list(f"{value:03d}"), used
+
+
 def _numbers(words: list[str]) -> list[str]:
     """Turn spoken number and letter words into single digits and letters."""
     out: list[str] = []
@@ -104,7 +121,9 @@ def _numbers(words: list[str]) -> list[str]:
         elif w == "hundred" and out and out[-1].isdigit():
             out.extend(["0", "0"])
         elif w == "thousand" and out and out[-1].isdigit():
-            out.extend(["0", "0", "0"])
+            rest, used = _below_thousand(words, i + 1)
+            out.extend(rest)
+            i += used
         else:
             out.append(w)
         i += 1

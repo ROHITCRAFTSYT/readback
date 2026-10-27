@@ -1,6 +1,6 @@
 # Full monitor on simulated scenarios
 
-Run 2026-10-27 05:47 UTC: 200 scenarios (seeds 1000-1199), 5220 transmissions, rule-based parser, speaker roles inferred.
+Run 2026-10-27 09:01 UTC: 200 scenarios (seeds 1000-1199), 5220 transmissions, rule-based parser, speaker roles inferred.
 
 | Planted problem | Planted | Caught | Recall |
 |---|---|---|---|

@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # The training supervisor pushes progress every hour; that alone needs no CI run.
+    paths-ignore: ["training/**", "TRAINING.md", "models/**"]
   pull_request:
 
 permissions:

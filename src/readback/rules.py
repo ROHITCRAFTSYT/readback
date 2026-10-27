@@ -150,7 +150,8 @@ def parse(text: str, designators: set[str]) -> Clearance:
             items.append(Item("line_up", rwy))
             attached_runways.add(rwy)
             nxt = i + 2
-        elif _phrase(toks, i, "hold", "short") or _phrase(toks, i, "holding", "point"):
+        elif _phrase(toks, i, "hold", "short") or _phrase(toks, i, "holding", "decimal"):
+            # "holding point": canonical() reads "point" as the decimal point
             rwy = _nearby_runway(toks, i + 2)
             items.append(Item("hold_short", rwy))
             attached_runways.add(rwy)

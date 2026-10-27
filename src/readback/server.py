@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -20,17 +21,35 @@ from readback.adsb import KNOWN_DESIGNATORS, OpenSky, spoken_callsign
 from readback.monitor import Monitor, describe
 from readback.replay import replay
 from readback.sim import CENTER, generate
+from readback.tagger.report import read_jsonl
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 WEB = ROOT / "web"
 SCENARIOS = ROOT / "scenarios"
+TRAINING = ROOT / "training"
 
 app = FastAPI(title="Readback")
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 
-def _parse(text: str):
+def _rules_parse(text: str):
     return rules.parse(text, KNOWN_DESIGNATORS)
+
+
+def _pick_parser():
+    """The trained tagger (models/tagger.pt) when it and PyTorch are available, unless
+    READBACK_PARSER=rules; otherwise the rule-based parser."""
+    model = ROOT / "models" / "tagger.pt"
+    if os.environ.get("READBACK_PARSER", "tagger") == "rules" or not model.exists():
+        return "rules", _rules_parse
+    try:
+        from readback.tagger.model import Tagger
+    except ImportError:
+        return "rules", _rules_parse
+    return "tagger", Tagger.load(model).parse
+
+
+PARSER_NAME, _parse = _pick_parser()
 
 
 def load_scenario(seed: int) -> dict:
@@ -66,6 +85,7 @@ def scenario_info(seed: int) -> dict:
         "duration": last,
         "transmissions": sum(e["type"] == "tx" for e in scen["events"]),
         "has_audio": any(e.get("audio") for e in scen["events"] if e["type"] == "tx"),
+        "parser": PARSER_NAME,
     }
 
 
@@ -124,6 +144,28 @@ def replay_stream(seed: int, speed: float = Query(4.0, gt=0, le=1000)) -> Stream
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/training")
+def training_page() -> FileResponse:
+    return FileResponse(WEB / "training.html")
+
+
+@app.get("/api/training")
+def training(rounds: int = Query(400, gt=0, le=5000)) -> dict:
+    """The tagger's training run: status, the last `rounds` log entries and daily checks."""
+    status_path = TRAINING / "status.json"
+    if not status_path.exists():
+        raise HTTPException(404, "no training run yet; start one with scripts/train_tagger.py")
+    log = [e for e in read_jsonl(TRAINING / "log.jsonl") if "round" in e][-rounds:]
+    for e in log:  # the per-kind breakdown of every candidate isn't needed for the charts
+        for split in e["candidate"].values():
+            split.pop("kind_f1", None)
+    return {
+        "status": json.loads(status_path.read_text(encoding="utf-8")),
+        "log": log,
+        "checks": read_jsonl(TRAINING / "checks.jsonl"),
+    }
 
 
 @app.get("/api/live")

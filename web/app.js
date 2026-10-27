@@ -352,7 +352,7 @@ async function pollLive() {
 }
 
 function setMode(mode) {
-  document.querySelectorAll(".tab").forEach((t) => {
+  document.querySelectorAll(".tab[data-mode]").forEach((t) => {
     const on = t.dataset.mode === mode;
     t.classList.toggle("active", on);
     t.setAttribute("aria-selected", String(on));
@@ -368,7 +368,8 @@ function setMode(mode) {
   }
 }
 
-document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => setMode(t.dataset.mode)));
+document.querySelectorAll(".tab[data-mode]").forEach((t) => t.addEventListener("click", () => setMode(t.dataset.mode)));
+if (location.hash === "#live") setMode("live");
 $("play").addEventListener("click", play);
 setInterval(() => { $("clock").textContent = document.body.classList.contains("live") ? new Date().toLocaleTimeString().slice(0, 5) : fmtTime(simT); }, 250);
 

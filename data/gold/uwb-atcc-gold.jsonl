@@ -1,0 +1,287 @@
+{"id": "uwb-atcc_TWR-FJ5hyZ_001080_001791_AT", "callsign": null, "items": [{"kind": "hold_short", "value": "13", "qualifier": ""}, {"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-l0cTdV_001628_001839_PI", "callsign": "csa 9", "items": [{"kind": "speed", "value": "140", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-nckbfi_000697_000768_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-ZnJ788_000786_001309_AT", "callsign": "csa 7 e c", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-JFMHbf_000890_001452_AT", "callsign": "csa 1 d z", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-uueIn4_001110_001365_PI", "callsign": "csa 7 k g", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-GljaI5_001124_001362_PI", "callsign": "skytravel 1 1 9 2", "items": []}
+{"id": "uwb-atcc_TWR-deXIry_000100_000532_PI", "callsign": "air france 1 9 8 2", "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-fjf8rq_003756_004086_PI", "callsign": "wizz air 4 q s", "items": []}
+{"id": "uwb-atcc_TWR-TUr5QT_000000_000382_PI", "callsign": "csa 9 1 6", "items": [{"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-HGMYw4_000984_001279_PI", "callsign": "s d m 2 2 1", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-gUFtIF_000191_000672_AT", "callsign": "skytravel 9 5 j", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zvmMgk_000726_000953_PI", "callsign": "csa 9 7 4", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-VIKx0e_000667_001147_AT", "callsign": "h z m s 4", "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-BQzAeM_000440_000612_PI", "callsign": "beline 6 b n", "items": []}
+{"id": "uwb-atcc_TWR-IuR0Pc_000099_000509_PI", "callsign": "lot 5 2 8", "items": []}
+{"id": "uwb-atcc_TWR-HfZhOq_002202_002278_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-SvKwd2_007778_007890_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-qXq8jX_001798_001909_PI", "callsign": null, "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qrPDuE_000303_000518_PI", "callsign": "csa 7 2", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-dhiUuU_000517_000873_PI", "callsign": "d 2 1 1", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-oeoOFT_000720_000972_AT", "callsign": "skytravel 8 2 4", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sJa6cS_000401_000763_PI", "callsign": null, "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-nLCO4H_003250_003509_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-PVqexk_002380_002529_AT", "callsign": "2 3 k a", "items": [{"kind": "speed", "value": "160", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-HFplEO_001635_001962_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qXq8jX_001216_001694_AT", "callsign": "twin star 8 8 7", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sSgeSi_001780_001976_AT", "callsign": null, "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-EHtnQ1_000000_000347_AT", "callsign": "skytravel 6 8 2", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zd5yYW_000575_001206_AT", "callsign": "lot 5 2 p", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-A91jjm_001375_002009_AT", "callsign": "csa 2 9 6", "items": [{"kind": "qnh", "value": "1018", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-YHCgbt_001573_001766_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-xvIooH_000588_001125_AT", "callsign": "csa 2 7 0", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qrPDuE_002290_002793_PI", "callsign": "csa 5 3 7", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-thLWob_002243_002533_PI", "callsign": "lufthansa 2 j w", "items": []}
+{"id": "uwb-atcc_TWR-hc0qhd_000171_000776_PIAT", "callsign": "nor shuttle 3 5 8 0", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-m29XhY_000144_000869_AT", "callsign": "lufthansa 8 l l", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-t29ovC_000742_001319_AT", "callsign": "csa 4 2 0", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-dPIBy0_001789_002110_AT", "callsign": "easy 5 3 k r", "items": []}
+{"id": "uwb-atcc_TWR-CzeKeg_001256_001677_AT", "callsign": "jobair 0 6 2", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-IqpCCL_002573_002885_PIAT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-sk4Eh7_001587_001769_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-N9q3TZ_000927_001383_PI", "callsign": "csa 2 m z", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-GgBPMq_003313_003968_PIAT", "callsign": "aeroflot 1 4 3", "items": [{"kind": "runway", "value": "22", "qualifier": ""}, {"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-yGF8s5_001775_001855_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-LMvdEp_002290_002814_AT", "callsign": "aeroflot 1 4 1", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-IOouyT_000637_000940_AT", "callsign": "beair 5 9 1", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UFAuwG_000165_000520_AT", "callsign": "csa 8 0 3", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Tqr3ha_003710_004136_PIAT", "callsign": "csa 7 3 0", "items": []}
+{"id": "uwb-atcc_TWR-w7Tyjt_001638_002056_AT", "callsign": "csa 5 v p", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-FXFjjV_000000_000479_AT", "callsign": "jobair 0 7 1", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-aLSxth_001723_001961_AT", "callsign": "air france 1 0 8 2", "items": []}
+{"id": "uwb-atcc_TWR-ChXDb9_000178_000594_AT", "callsign": "lufthansa 5 m e", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-q2wbS3_000713_001269_AT", "callsign": "csa 7 7 e", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-QGHv2Q_000914_001317_AT", "callsign": "skytravel 1 1 9 2", "items": [{"kind": "flight_level", "value": "160", "qualifier": "climb"}]}
+{"id": "uwb-atcc_TWR-vQBHUO_000441_000642_PI", "callsign": "easy 8 0 9 b", "items": [{"kind": "cleared_to_land", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-jESpJU_000084_000342_AT", "callsign": "lufthansa 9 v t", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-pmaLDy_000097_000674_PI", "callsign": "donavia 3 0 6", "items": [{"kind": "hold_short", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-tAycGK_000609_000930_PI", "callsign": "csa 3 c t", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-lpdHDA_000172_000505_PI", "callsign": "csa 5 7 3", "items": []}
+{"id": "uwb-atcc_TWR-sYnbty_000826_001161_PI", "callsign": "csa 0 2 6", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-egYa6k_002319_002566_PI", "callsign": "swiss 1 6 0", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-xfqgjn_003115_003479_PI", "callsign": "czech holidays 7 4 2 0", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-lfjaFO_000101_000501_AT", "callsign": "csa 7 a j", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-e8Sw4f_003411_003547_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-hFvm1Y_001834_002257_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-Hz0EVA_000373_000612_PI", "callsign": "csa 7 6 4", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qXq8jX_000148_000627_AT", "callsign": "skytravel 1 0 1 1", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-JFMHbf_000491_000725_AT", "callsign": "csa 5 0 8", "items": []}
+{"id": "uwb-atcc_TWR-QCN3cr_001091_001585_AT", "callsign": "lufthansa 8 k a", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-mDzIBi_003996_004258_PI", "callsign": null, "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-cWTEtl_002580_002685_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-TmJJIt_000000_000418_AT", "callsign": "swiss 1 2 4 a", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-t29ovC_001374_001953_PI", "callsign": "csa 4 2 0", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Sp0j3K_000000_000392_AT", "callsign": "h j n 5 1 1", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DM7AI0_001917_002523_PIAT", "callsign": "air france 1 9 8 r", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qoWWsQ_002198_002277_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-hc0qhd_004011_004302_AT", "callsign": "csa 3 7 a", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DtqogV_000280_000389_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-xkHcZX_005868_005958_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-R87YSI_001040_001268_PI", "callsign": "csa 6 3 a", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-hc0qhd_004473_004722_PI", "callsign": "csa 3 7 a", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-BCiSTG_001646_001879_AT", "callsign": "csa 8 5 6", "items": []}
+{"id": "uwb-atcc_TWR-IsXNLi_000569_000642_PI", "callsign": "csa 5", "items": []}
+{"id": "uwb-atcc_TWR-rosiei_004011_004238_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-RRZTcl_000596_000911_AT", "callsign": "skytravel 1 1 0 3", "items": []}
+{"id": "uwb-atcc_TWR-a8R9jE_000144_000596_AT", "callsign": "csa 7 3 1", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zp0yMS_000583_000654_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-CrnWwB_005438_005614_PI", "callsign": null, "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-thLWob_000965_001061_PI", "callsign": null, "items": [{"kind": "hold_short", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-jKaJgO_000195_000634_AT", "callsign": "csa 9 2 7", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zzjk3G_001655_001842_PI", "callsign": "csa 5 6 1", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Jg6xqY_000683_000969_AT", "callsign": "krystof 0 1", "items": []}
+{"id": "uwb-atcc_TWR-ahaj40_000215_000755_AT", "callsign": "german wings 7 p", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-SenmE8_000504_000650_PI", "callsign": null, "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Tqr3ha_001532_002023_AT", "callsign": "csa 5 1 6", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-QYQvSQ_000148_000317_AT", "callsign": "quality 8 9 s", "items": []}
+{"id": "uwb-atcc_TWR-rl16mT_000000_000448_AT", "callsign": "csa 8 2 6", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-ybuLTX_000545_000900_PI", "callsign": "camber 3 5 2 5", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-NOV1dv_000325_000749_AT", "callsign": "malev 8 2 5", "items": [{"kind": "cleared_for_takeoff", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-fQrsE9_001661_002048_PI", "callsign": "skytravel 1 0 3 8", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Kl5UGo_000000_000480_AT", "callsign": "easy 8 0 9 b", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zWibEU_010289_010560_PI", "callsign": "quality 8 9 s", "items": []}
+{"id": "uwb-atcc_TWR-LfhFsX_002606_003210_AT", "callsign": "o k d s j", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-WUnAXA_003238_003845_AT", "callsign": "german wings 7 h", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-PVqexk_000101_000374_AT", "callsign": "air france 3 9 3 v", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sJa6cS_002307_002559_AT", "callsign": null, "items": [{"kind": "hold_short", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-lC7rkB_000457_000802_AT", "callsign": "csa 7 b j", "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DvEjPm_002331_002657_PI", "callsign": "csa 5", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-VnSYrI_000144_000463_PI", "callsign": "bee line 8 h s", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-BBFd00_001827_002143_PI", "callsign": "lufthansa 9 e l", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-V4DR1t_003686_004079_PI", "callsign": "csa 1 9 6 2", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-tAycGK_000065_000609_AT", "callsign": "csa 3 c t", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-WpnKmV_006887_006986_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Gp7rwI_001253_001389_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-l0rfPz_000344_000592_AT", "callsign": "csa 4 m b", "items": []}
+{"id": "uwb-atcc_TWR-Es9irm_001053_001441_AT", "callsign": "beline 8 h s", "items": []}
+{"id": "uwb-atcc_TWR-D8Drbo_001195_001416_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-SvKwd2_002251_002325_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-tEw83o_002191_002676_AT", "callsign": "austrian 7 0 4", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-HPQIzw_003728_003840_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-T8Ga7y_000000_000618_AT", "callsign": "camber 3 5 2 6", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sJa6cS_001607_002032_PI", "callsign": null, "items": [{"kind": "hold_short", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-ex1bKt_000000_000357_PI", "callsign": "csa 5 7 2", "items": []}
+{"id": "uwb-atcc_TWR-vuswC8_001839_002371_AT", "callsign": "wizz air 4 9 1", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-u68U3U_001443_001823_PI", "callsign": "lufthansa 9 l c", "items": []}
+{"id": "uwb-atcc_TWR-PgpOWt_000108_000436_PI", "callsign": "csa 7 5 1", "items": []}
+{"id": "uwb-atcc_TWR-kJiOcR_000629_000747_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-eZG8WW_000852_001167_PI", "callsign": "s v m 2 2 1", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-LW5ejY_000872_001070_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-FOjx9X_001599_002265_PIAT", "callsign": "nor shuttle 1 5 1 4", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-pQNtLQ_000355_000715_AT", "callsign": "csa 5 0 9", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-tougna_000963_001023_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-lWX6Kz_000000_000273_AT", "callsign": "csa 7 6 e", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DM7AI0_007119_007337_PI", "callsign": "air france 1 9", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-uueIn4_000514_001081_PIAT", "callsign": "csa 7 k g", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-YSZDze_001181_001773_PI", "callsign": "csa 2 s l", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-U7LRII_000747_001227_PI", "callsign": "aeroflot 1 5 0", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Hicuvc_003358_003546_AT", "callsign": "wizz air 5 5 6", "items": []}
+{"id": "uwb-atcc_TWR-RCpxMG_000504_000672_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-KoA4p1_000797_001491_PIAT", "callsign": "csa 5 k p", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-34720N_002001_002559_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-bmLy3T_001537_001655_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-Q9VgRz_000565_001222_AT", "callsign": "csa 2 9 6", "items": [{"kind": "hold_short", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UarLnC_003042_003123_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-yc1lEi_000000_000626_AT", "callsign": "lufthansa 9 v t", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Eu6sIv_000099_000651_AT", "callsign": "lufthansa 1 r m", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-aTWhrQ_001375_001766_PI", "callsign": "csa 2 m c", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-hlhXbw_000293_000368_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-PwCXyy_000000_000297_AT", "callsign": "austrian 7 0 6 p", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zjsom1_000077_000169_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-aeJriv_000000_000484_PIAT", "callsign": "csa 6 k p", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DeVSyo_001521_001776_AT", "callsign": "austrian 7 0 8 p", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-C6H6yK_000171_000588_AT", "callsign": "lady rasim 3 1 3", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-rkhorq_001723_001979_AT", "callsign": "calibra 5 2 t", "items": []}
+{"id": "uwb-atcc_TWR-xaiX9E_000000_000300_AT", "callsign": "csa 9 2 d", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-v4gvqj_001203_001489_AT", "callsign": "air malta 5 3 9", "items": []}
+{"id": "uwb-atcc_TWR-AQql3M_001678_001917_PI", "callsign": "csa 5", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sJibky_002566_002735_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-Ssvbpl_009747_010074_PI", "callsign": "wizz air 4 p u", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sVGZxQ_000095_000459_AT", "callsign": "csa 3 c z", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Q9VzyB_000000_000462_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-U1vwv8_001131_001434_PI", "callsign": "csa 7 0 2", "items": []}
+{"id": "uwb-atcc_TWR-RggWaO_001597_002075_PIAT", "callsign": "lufthansa 7 k k", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-ETWxpH_000971_001686_PIAT", "callsign": "csa 7 b j", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-jESpJU_001447_001579_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-eKy8h9_000875_001137_AT", "callsign": "wizz air 5 3 0", "items": []}
+{"id": "uwb-atcc_TWR-ESU6Wv_000488_001177_AT", "callsign": "finn air 7 1 5 w", "items": [{"kind": "speed", "value": "150", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-hOmKjj_001394_001618_PI", "callsign": "jobair 0 5 p", "items": []}
+{"id": "uwb-atcc_TWR-FOjx9X_000174_000640_PI", "callsign": "swiss 4 7 3 c", "items": []}
+{"id": "uwb-atcc_TWR-y8uuLj_001860_002137_AT", "callsign": "csa 5 a j", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DM7AI0_006505_007119_PIAT", "callsign": "air france 1 9 8 r", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Jku1if_001523_002005_AT", "callsign": null, "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-E3YFPm_003079_003163_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-XwM1Xr_000000_000438_AT", "callsign": "lufthansa 7 k k", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-f0c9cQ_000000_000713_PIAT", "callsign": "el al 5 2 1", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-rosiei_004744_005072_AT", "callsign": null, "items": [{"kind": "runway", "value": "22", "qualifier": ""}, {"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Cs5J1G_003563_003659_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-lvg4CP_000000_000476_AT", "callsign": "beline 6 b n", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-hiY0Vp_000130_000587_AT", "callsign": "channex 8 7 p r", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-aTWhrQ_000867_001216_AT", "callsign": "csa 2 m c", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-YcGcO9_000612_000801_AT", "callsign": null, "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-POobKo_000298_000546_AT", "callsign": "nor shuttle 3 5 8 1", "items": []}
+{"id": "uwb-atcc_TWR-E3YFPm_003534_004083_AT", "callsign": "swedestar 8 8 7", "items": [{"kind": "hold_short", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-mLOIBH_002200_002379_PI", "callsign": "csa 7", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-PTEda6_000000_000466_PI", "callsign": "csa 5 p c", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Jku1if_002121_002480_PI", "callsign": "s d m 3", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Vn4gBm_001280_001568_PI", "callsign": "csa 5 p c", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-LEO3vy_002521_002867_PI", "callsign": "csa 8 8 0", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-fQrsE9_000997_001579_AT", "callsign": "skytravel 1 0 3 8", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Odv5b4_000126_000561_AT", "callsign": "quality 9 1 r", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-XJl4sM_000129_000412_AT", "callsign": "camber 3 5 2 4", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-IOouyT_001548_001764_PI", "callsign": "csa 4 9 5", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Hicuvc_005696_005737_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-VkJgsW_000509_000880_PI", "callsign": "csa 9 0 4", "items": [{"kind": "altitude", "value": "3000", "qualifier": "climb"}]}
+{"id": "uwb-atcc_TWR-PZdohO_001567_002203_PIAT", "callsign": "csa 9 7 8 g", "items": []}
+{"id": "uwb-atcc_TWR-QYQvSQ_000733_001241_AT", "callsign": null, "items": [{"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UQIPPq_000499_001198_PIAT", "callsign": "swiss 4 9 8 y", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-sSgeSi_000318_001017_AT", "callsign": null, "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-dSuqDX_001034_001290_PI", "callsign": "aeroflot 1 5 0", "items": []}
+{"id": "uwb-atcc_TWR-Ssvbpl_008743_009049_PI", "callsign": "finn air 7 1 6", "items": [{"kind": "runway", "value": "22", "qualifier": ""}, {"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Q5cV9l_002255_002926_PI", "callsign": "easy 3 8 p g", "items": [{"kind": "squawk", "value": "1443", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qEqvlc_000000_000593_AT", "callsign": "wizz air 4 c b", "items": []}
+{"id": "uwb-atcc_TWR-p4MzEP_002421_002848_PI", "callsign": "lufthansa 2 m e", "items": []}
+{"id": "uwb-atcc_TWR-ybuLTX_001539_002052_AT", "callsign": "o k l i n", "items": []}
+{"id": "uwb-atcc_TWR-egYa6k_001802_002280_AT", "callsign": "swiss 4 6 0 t", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Tqr3ha_000000_000437_AT", "callsign": "csa 3 s l", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-U3NcJb_002421_002650_PI", "callsign": "csa 2 m d", "items": []}
+{"id": "uwb-atcc_TWR-XgqNSk_000000_000498_AT", "callsign": "air france 1 0 8 2", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-WbKBNa_000128_000706_PI", "callsign": "bline 9 9 0 8", "items": [{"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-w5sYZ6_000000_000370_AT", "callsign": "easy 2 5 8 q", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-zi3pBN_000000_000523_PIAT", "callsign": "csa 6 8 8", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-v1sw0a_000133_000539_AT", "callsign": null, "items": [{"kind": "runway", "value": "04", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-IqpCCL_000143_000557_AT", "callsign": "easy 3 8 p g", "items": []}
+{"id": "uwb-atcc_TWR-UQIPPq_000149_000440_PI", "callsign": "4 9 8 y", "items": []}
+{"id": "uwb-atcc_TWR-utAM7m_000078_000649_AT", "callsign": "1 7 0 p", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-eC6VVe_001140_001619_PI", "callsign": "csa 3 f", "items": [{"kind": "speed", "value": "150", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-kCFYF8_006233_006338_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-NoZ3fS_001506_001578_PI", "callsign": "csa 9", "items": []}
+{"id": "uwb-atcc_TWR-kRaWpx_000588_000799_PI", "callsign": null, "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-HmCJmN_000552_000918_AT", "callsign": "easy 9 c l", "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-cQC0Ld_000144_000373_AT", "callsign": "jobair 0 5 1", "items": []}
+{"id": "uwb-atcc_TWR-vuswC8_002474_002697_PI", "callsign": "wizz air 4 9 1", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UFAuwG_001089_001529_AT", "callsign": "emirates 1 4 0", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-NeU3FG_003672_003786_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-RCpxMG_000000_000478_AT", "callsign": "speed bird 2 0 u", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-aLSxth_002172_002640_AT", "callsign": "austrian 7 1 2 z", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-DM7AI0_013867_014441_AT", "callsign": "speed bird 8 6 1", "items": []}
+{"id": "uwb-atcc_TWR-TUr5QT_006035_006144_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-KG8Na8_000155_000261_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-S2gLUu_000000_000320_AT", "callsign": "air france 1 3 8 3", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-WBIJAh_000120_000818_PI", "callsign": "o k d s j", "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-hFvm1Y_001199_001533_AT", "callsign": "skytravel 1 1 9 2", "items": []}
+{"id": "uwb-atcc_TWR-zjsom1_000624_000859_AT", "callsign": "speed bird 8 6 0", "items": []}
+{"id": "uwb-atcc_TWR-mXBORc_000643_000872_PI", "callsign": "csa 7 3", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-fRN4Kw_001460_001646_AT", "callsign": "easy 3 8 p g", "items": []}
+{"id": "uwb-atcc_TWR-TmhuAW_000184_000531_AT", "callsign": "easy 3 0 6 5", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-m8CuYQ_000336_000934_AT", "callsign": "lufthansa 2 m e", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-mDzIBi_000868_001081_AT", "callsign": "quality 8 9 s", "items": []}
+{"id": "uwb-atcc_TWR-mqWFba_000647_001094_PI", "callsign": "csa 4 c z", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-BpscHm_000483_000819_PI", "callsign": "csa 3 c z", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-xkeauM_000596_000766_PI", "callsign": null, "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-pmaLDy_001069_001726_PIAT", "callsign": "donavia 3 0 6", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-I0DLbr_003440_003982_PIAT", "callsign": "air malta 5 3 8", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UHcosy_000151_000714_AT", "callsign": "sevenair 8 5 0 0", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-Bt4bk7_002659_002907_PI", "callsign": "swedestar 1", "items": []}
+{"id": "uwb-atcc_TWR-VwM0Hb_000325_000590_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-hb2QLO_000161_000525_PI", "callsign": "csa 3 c t", "items": []}
+{"id": "uwb-atcc_TWR-VBObsy_000147_000723_PI", "callsign": "turkish 1 7 6 9", "items": [{"kind": "runway", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-VCJ4zX_000643_001258_AT", "callsign": null, "items": [{"kind": "line_up", "value": "13", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-QTxssg_000186_000878_PIAT", "callsign": "austrian 7 0 9", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-N4LnTx_000516_000764_PI", "callsign": null, "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-RLvsks_000635_000956_PI", "callsign": "csa 6 b c", "items": [{"kind": "cleared_to_land", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-wCvRaI_000119_000621_AT", "callsign": "csa 7 9 0", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-YHCgbt_000174_000593_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-ZfmGUj_000000_000243_PI", "callsign": "csa 9 2 7", "items": []}
+{"id": "uwb-atcc_TWR-NE1pxZ_000000_000408_AT", "callsign": "lufthansa 1 k k", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-UarLnC_000082_000290_PI", "callsign": "klm 5 6 t", "items": []}
+{"id": "uwb-atcc_TWR-Q7qe4z_003218_003479_PI", "callsign": "skytravel 6", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-cslazl_002038_002278_AT", "callsign": "csa 9 2 2", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-TFtGkH_000560_000889_AT", "callsign": "german wings 7 p", "items": []}
+{"id": "uwb-atcc_TWR-Fo112W_000353_000898_AT", "callsign": "french navy 5 5 a 2", "items": [{"kind": "frequency", "value": "121.9", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-oXu4Pe_001639_002052_PI", "callsign": "turkish 1 7 7 0", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-ZdBxsE_000118_000590_PI", "callsign": "skytravel 1 9 2", "items": [{"kind": "hold_short", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-vcVzdV_000077_000367_AT", "callsign": "csa 6 1 8", "items": [{"kind": "line_up", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-BBGy10_000000_000509_AT", "callsign": "csa 0 2 4", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-NG3MCi_005590_005887_PI", "callsign": null, "items": [{"kind": "altitude", "value": "5000", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-osPbMP_001330_001432_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-leWGW1_001088_001397_AT", "callsign": "9 2 1", "items": []}
+{"id": "uwb-atcc_TWR-zWibEU_002304_002410_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-VIKx0e_000440_000511_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-WpnKmV_003158_003244_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-wCvRaI_000652_000878_PI", "callsign": "csa 7 9", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-kr1Hv3_000434_000508_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-yGF8s5_003803_004069_AT", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-nKgIeT_000282_001042_PIAT", "callsign": "csa 7 9 1", "items": [{"kind": "runway", "value": "13", "qualifier": ""}, {"kind": "speed", "value": "160", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-i4mzZr_000685_000890_PI", "callsign": "csa 4 8 1", "items": []}
+{"id": "uwb-atcc_TWR-sjbF15_001498_001685_PI", "callsign": "jobair 0 8 2", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-xfqgjn_002396_003077_AT", "callsign": "czech holidays 7 4 2 0", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}, {"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-nckbfi_000199_000647_AT", "callsign": "beair 5 5 2", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-qrPDuE_003826_004240_AT", "callsign": "csa 7 2 6", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-VfcCwH_004858_005115_AT", "callsign": "csa 7 7 2", "items": [{"kind": "line_up", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-r9C8LR_002451_002524_PI", "callsign": null, "items": []}
+{"id": "uwb-atcc_TWR-ozjPeI_000160_000655_AT", "callsign": "easy 8 0 8 u", "items": [{"kind": "cleared_for_takeoff", "value": "13", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-uktQeK_000430_000530_PI", "callsign": null, "items": [{"kind": "runway", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-dT5e5s_001134_001592_AT", "callsign": "klm 1 3 5 2", "items": [{"kind": "cleared_for_takeoff", "value": "31", "qualifier": ""}]}
+{"id": "uwb-atcc_TWR-J1rxgC_000998_001228_PI", "callsign": "csa 2 9", "items": [{"kind": "cleared_to_land", "value": "13", "qualifier": ""}]}

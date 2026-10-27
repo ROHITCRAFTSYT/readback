@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readback training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/training.css">
+</head>
+<body class="training-page">
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>Readback</h1>
+        <p>Clearance tagger, training itself</p>
+      </div>
+    </div>
+    <div class="controls">
+      <nav class="tabs">
+        <a class="tab" href="/">Scenario</a>
+        <a class="tab" href="/#live">Live BLR traffic</a>
+        <a class="tab active" href="/training" aria-current="page">Training</a>
+      </nav>
+      <span id="updated" class="clock small">--</span>
+    </div>
+  </header>
+
+  <main class="train">
+    <section class="strip" aria-label="Run status">
+      <span id="state" class="badge">loading</span>
+      <span>Round <b id="round">–</b></span>
+      <span>Level <b id="level">–</b> <i id="level-name"></i></span>
+      <span>Champion from round <b id="champ-round">–</b></span>
+      <span><b id="hours">–</b> h on <b id="examples">–</b> examples</span>
+    </section>
+
+    <section class="kpis" aria-label="Champion against the rule-based parser">
+      <div class="kpi"><h3>Real radio · item F1</h3><div class="hero" id="k-f1">–</div><p id="k-f1-vs"></p></div>
+      <div class="kpi"><h3>Real radio · exactly right</h3><div class="hero" id="k-exact">–</div><p id="k-exact-vs"></p></div>
+      <div class="kpi"><h3>Real radio · callsign right</h3><div class="hero" id="k-cs">–</div><p id="k-cs-vs"></p></div>
+      <div class="kpi"><h3 id="k-syn-title">Synthetic · exactly right</h3><div class="hero" id="k-syn">–</div><p id="k-syn-vs"></p></div>
+    </section>
+
+    <section class="panel chart-panel">
+      <h2>Learning curve <span class="hint">real radio = held-out half of 287 hand-labeled Prague transmissions</span></h2>
+      <div class="legend" id="legend"></div>
+      <div class="chart-wrap">
+        <canvas id="curve" aria-label="Learning curve chart"></canvas>
+        <div id="tip" class="tip" hidden></div>
+      </div>
+    </section>
+
+    <div class="two">
+      <section class="panel">
+        <h2>Real radio by clearance type <span class="hint">item F1, held-out half</span></h2>
+        <div class="legend" id="kind-legend"></div>
+        <div id="kinds" class="kinds"></div>
+      </section>
+      <section class="panel">
+        <h2>Curriculum</h2>
+        <ol id="levels" class="levels"></ol>
+        <h2 class="sub">Practising now <span class="hint">weak spots from the last probe</span></h2>
+        <div id="focus" class="chips"></div>
+      </section>
+    </div>
+
+    <div class="two">
+      <section class="panel">
+        <h2>Daily fresh checks <span class="hint">new date-seeded test set each day</span></h2>
+        <table class="tbl"><thead><tr><th>Date</th><th>Champion</th><th>Synthetic exact</th><th>Real F1</th></tr></thead>
+          <tbody id="checks"><tr><td colspan="4" class="empty">No daily check yet.</td></tr></tbody></table>
+      </section>
+      <section class="panel">
+        <h2>Recent rounds</h2>
+        <table class="tbl"><thead><tr><th>Round</th><th>Level</th><th>Candidate exact</th><th>Real dev F1</th><th></th></tr></thead>
+          <tbody id="rounds"></tbody></table>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    Trained on synthetic transmissions only; the real UWB-ATCC transmissions (CC BY-NC-SA 4.0) are used for testing. Refreshes every 20 s.
+  </footer>
+  <script src="/static/training.js"></script>
+</body>
+</html>

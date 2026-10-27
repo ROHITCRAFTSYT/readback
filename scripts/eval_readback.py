@@ -43,7 +43,12 @@ def _flagged(findings) -> bool:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--parser", choices=["rules", "spark", "both"], default="rules")
+    ap.add_argument(
+        "--parser",
+        choices=["rules", "spark", "tagger", "both", "all"],
+        default="rules",
+        help="both = rules + spark; all = rules + tagger + spark",
+    )
     ap.add_argument("--limit", type=int, default=0, help="evaluate a random subset of pairs")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel Muse Spark calls")
     ap.add_argument("--seed", type=int, default=7)
@@ -74,9 +79,17 @@ def main() -> int:
     print(f"{len(pairs)} real pairs, {len(planted)} with a planted error")
 
     parsers = {}
-    if args.parser in ("rules", "both"):
+    if args.parser in ("rules", "both", "all"):
         parsers["rules"] = (rule_parse, 1)
-    if args.parser in ("spark", "both"):
+    if args.parser in ("tagger", "all"):
+        from readback.tagger.model import Tagger
+
+        model = ROOT / "models" / "tagger.pt"
+        if not model.exists():
+            model = ROOT / "training" / "champion.pt"
+        tagger = Tagger.load(model)
+        parsers[f"tagger ({model.relative_to(ROOT).as_posix()})"] = (tagger.parse, 1)
+    if args.parser in ("spark", "both", "all"):
         chat = MuseChat()
         parsers[chat.model] = (SparkParser(chat, ROOT / "results" / "raw" / "llm-cache"), 0)
 

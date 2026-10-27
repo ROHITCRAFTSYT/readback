@@ -76,7 +76,7 @@ function renderBlind() {
   if (!b || !info) return;
   const r = st.baseline.rules.blind || {};
   const names = Object.keys(info.airports).map((a) => AIRPORTS[a] || a);
-  $("blind-hint").textContent = `${info.transmissions} ATCO2 transmissions from ${names.length} airports, never used for training or tuning`;
+  $("blind-hint").textContent = `set 2: ${info.transmissions} ATCO2 transmissions from ${names.length} airports, never used for training or tuning`;
   $("b-f1").textContent = pct(b.item_f1);
   vs("b-f1-vs", b.item_f1, r.item_f1, "rules");
   $("b-exact").textContent = pct(b.exact);
@@ -89,6 +89,12 @@ function renderBlind() {
   note.append(info.generator_unchanged
     ? el("span", "ok", "Generator unchanged since the freeze.")
     : el("span", "warn", "Generator changed since the freeze (see git history)."));
+  const seen = st.champion.atco2_seen;
+  if (seen) {
+    const rs = st.baseline.rules.atco2_seen || {};
+    note.append(el("br"), `ATCO2 set 1, retired (labeling it shaped generator v3, so it is no longer blind): item F1 `,
+      el("b", null, pct(seen.item_f1)), ` vs rules ${pct(rs.item_f1)}.`);
+  }
 }
 
 function renderLevels() {

@@ -10,6 +10,13 @@ canonical token is known exactly. Three levels add realism step by step:
 3. what a real frequency and a recognizer add: clips cut off mid-word, hesitations,
    corrections, misheard words, and airlines the model has never seen
 
+Version 3 widens the phraseology to what ICAO Doc 9432 and CAP 413 describe for any
+airport, not one corpus: VFR circuit calls (touch and go, downwind, final), runways said
+without the word "runway", type-prefixed and abbreviated registrations ("heli charlie
+zulu"), the "heavy" suffix, gusting and variable wind, traffic information with altitudes,
+passing-level reports, initial-climb clearances, speed limits ("maximum one six zero"),
+and greetings in the languages heard on European frequencies.
+
 `focus` multiplies how often an item kind or a kind of noise is drawn, so the trainer can
 push practice toward whatever the model currently gets wrong.
 """
@@ -24,7 +31,7 @@ from readback.normalize import canonical
 from readback.tagger.decode import FILLERS, RUNWAY_KINDS, decode, item_from_span
 
 # Bump when the generator changes what it produces; the trainer then re-scores its champion.
-VERSION = 2
+VERSION = 3
 
 DIGIT_WORDS = "zero one two three four five six seven eight niner".split()
 PLAIN_DIGITS = "zero one two three four five six seven eight nine".split()
@@ -48,17 +55,40 @@ TELEPHONY = [
     "oman air", "etihad", "saudia", "kuwaiti", "gulf air", "southern air", "dhl", "air france",
     "wizz air", "finn air", "speed bird", "malev", "air baltic", "vueling", "norwegian",
     "air europa", "jet two", "virgin", "tap", "luxair", "cyprus", "olympic", "tunair",
+    "qantas", "jetstar", "velocity", "cathay", "dragon", "china southern", "china eastern",
+    "air china", "korean air", "asiana", "japan air", "all nippon", "air canada", "westjet",
+    "delta", "jetblue", "alaska", "southwest", "air new zealand", "edelweiss", "helvetic",
+    "european", "air nostrum", "royal air maroc", "air portugal", "tatra", "smartwings",
+    "aer lingus", "icelandair", "air dolomiti", "sky express", "bulgaria air", "kenya",
+    "egyptair", "saudia", "air arabia", "flydubai", "indigo", "akasa air", "garuda",
+    "thai", "malaysian", "philippine", "vietnam airlines", "atlas", "kalitta", "polar",
+    "cargolux", "nippon cargo", "air hong kong", "rega", "swiss air force", "netjets",
+    "vista jet", "jet aviation", "global", "executive", "europa", "air force",
 ]  # fmt: skip
+# Light aircraft and helicopters say their type before the registration ("heli charlie zulu").
+TYPE_PREFIXES = ["heli", "helicopter", "cessna", "piper", "diamond", "robin", "pilatus", "glider"]
 # Callsigns are also spoken as the three-letter ICAO code: "sierra delta mike two two one".
 CODE_LETTERS = "abcdefghijklmnoprstuvwxyz"
-REGISTRATION_PREFIXES = ["o k", "d", "h b", "g", "v t", "s p", "o e", "o m", "n", "f"]
+REGISTRATION_PREFIXES = [
+    "o k", "d", "h b", "g", "v t", "s p", "o e", "o m", "n", "f", "v h", "c", "e i", "s e",
+    "l n", "o y", "9 h", "i", "e c", "p h", "o o", "y r", "h a", "s 5", "9 a", "z k",
+]  # fmt: skip
 STATIONS = [
     "ruzyne tower", "ruzyne ground", "praha radar", "prague director", "prague approach",
     "praha information", "bengaluru approach", "bengaluru radar", "bengaluru tower", "tower",
-    "radar", "approach", "director", "ground", "delivery", "praha", "ruzyne",
+    "radar", "approach", "director", "ground", "delivery", "praha", "ruzyne", "apron",
+    "information", "departure", "arrival", "control",
 ]  # fmt: skip
-GREETINGS = ["hello", "good morning", "good day", "good afternoon", "good evening", "servus"]
-SIGNOFFS = ["bye", "bye bye", "good day", "thank you", "thanks", "ciao", "see you"]
+STATION_KINDS = ["tower", "ground", "approach", "radar", "apron", "information", "departure"]
+GREETINGS = [
+    "hello", "good morning", "good day", "good afternoon", "good evening", "servus",
+    "bonjour", "bonsoir", "gruezi", "guten morgen", "guten tag", "dobry den", "buongiorno",
+    "hola", "dzien dobry", "hello again", "hi",
+]  # fmt: skip
+SIGNOFFS = [
+    "bye", "bye bye", "good day", "thank you", "thanks", "ciao", "see you", "merci",
+    "au revoir", "danke", "tschuss", "ahoj", "diky", "grazie", "cheers", "good night",
+]  # fmt: skip
 ACKS = ["roger", "wilco", "ok", "okay", "copied", "affirm"]
 CONNECTORS = ["", "", "and", "then"]
 CHANNEL_ENDINGS = [
@@ -110,6 +140,27 @@ SYLLABLES = [
     "bo",
 ]
 
+# Circuit and approach calls that name a runway (ICAO Doc 9432 ch. 4, CAP 413 ch. 4).
+VFR_RUNWAY_LEADS = [
+    "cleared touch and go", "cleared stop and go", "cleared low approach", "cleared for the option",
+    "join downwind", "join right downwind", "join left downwind", "join left base",
+    "join right base", "report downwind", "report final", "report left base", "downwind",
+    "on final", "final", "base", "number one", "cleared ils approach", "cleared rnp approach",
+    "cleared visual approach", "localizer established", "circling", "taxi to", "behind traffic",
+    "landing", "departure",
+]  # fmt: skip
+# Leads after which the runway is often said without the word "runway": "downwind two five".
+NO_KEYWORD_LEADS = (
+    "established", "fully", "downwind", "on final", "final", "base", "join", "report downwind",
+    "report final", "cleared ils", "cleared rnp", "cleared visual", "localizer", "circling",
+    "cross", "backtrack",
+)  # fmt: skip
+CIRCUIT_TAILS = [
+    "cleared touch and go", "touch and go", "cleared stop and go", "full stop", "low approach",
+    "report downwind", "report final", "number one", "number two", "continue approach",
+    "in use", "vacate left", "vacate right", "backtrack approved",
+]  # fmt: skip
+
 KIND_WEIGHTS = {
     "flight_level": 3.0, "altitude": 1.5, "heading": 2.0, "speed": 1.5, "squawk": 1.0,
     "frequency": 2.0, "qnh": 1.0, "runway": 1.0, "cleared_to_land": 1.5,
@@ -147,7 +198,7 @@ def say(digits: str, plain: bool = False) -> str:
 
 
 def spell(letters: str) -> str:
-    return " ".join(LETTERS[c] for c in letters)
+    return " ".join(PLAIN_DIGITS[int(c)] if c.isdigit() else LETTERS[c] for c in letters)
 
 
 class Generator:
@@ -171,22 +222,43 @@ class Generator:
         return self.rng.choice(options)
 
     def _novel_word(self) -> str:
-        return "".join(self.rng.choice(SYLLABLES) for _ in range(self.rng.choice((2, 3))))
+        while True:  # not one that is already a word with a meaning ("mike", "tango")
+            word = "".join(self.rng.choice(SYLLABLES) for _ in range(self.rng.choice((2, 3))))
+            if canonical(word) == [word]:
+                return word
 
     # -- callsigns ----------------------------------------------------------------------
     def callsign(self, feats: set[str]) -> str:
         r = self.rng.random()
         if r < 0.22:
             prefix = self.rng.choice(REGISTRATION_PREFIXES).replace(" ", "")
+            if prefix == "n" and self.rng.random() < 0.6:  # US: N plus digits and letters
+                feats.add("callsign:n_number")
+                tail = str(self.rng.randint(1, 9)) + "".join(
+                    str(self.rng.randint(0, 9)) for _ in range(self.rng.randint(1, 3))
+                )
+                letters = spell("n") + " " + self._digits(tail)
+                if self.rng.random() < 0.5:
+                    n_letters = self.rng.randint(1, 2)
+                    letters += " " + spell(
+                        "".join(self.rng.choice("abcdefghkmprstxyz") for _ in range(n_letters))
+                    )
+                return letters
             letters = prefix + "".join(
                 self.rng.choice("abcdefghijklmnoprstuvwxyz") for _ in range(5 - len(prefix))
             )
+            typed = self.level > 1 and self.rng.random() < 0.25
             if self._p("abbreviated"):
                 feats.add("callsign:abbreviated")
-                letters = letters[0] + letters[-2:]
+                # ICAO: the first character and at least the last two; a type may replace it
+                letters = letters[-2:] if typed else letters[0] + letters[-2:]
             else:
                 feats.add("callsign:registration")
-            return spell(letters)
+            text = spell(letters)
+            if typed:
+                feats.add("callsign:type_prefix")
+                text = f"{self.rng.choice(TYPE_PREFIXES)} {text}"
+            return text
         if self.level > 1 and r < 0.3:
             feats.add("callsign:spelled_code")
             airline = spell("".join(self.rng.choice(CODE_LETTERS) for _ in range(3)))
@@ -256,18 +328,28 @@ class Generator:
                 )
             return [(text, kind)], Item(kind, str(fl), q)
         if kind == "altitude":
-            ft = rng.randrange(2000, 10000, 500)
-            q = rng.choice(("climb", "descend", "descend"))
+            ft = (
+                rng.randrange(1000, 13500, 500)
+                if self.level > 1
+                else rng.randrange(2000, 10000, 500)
+            )
+            q = rng.choice(("climb", "descend", "descend", "maintain"))
             thousands, rest = divmod(ft, 1000)
-            num = f"{PLAIN_DIGITS[thousands]} thousand" + (
+            # ICAO says the thousands digit by digit: "one one thousand" for 11000
+            num = f"{say(str(thousands), plain=True)} thousand" + (
                 f" {PLAIN_DIGITS[rest // 100]} hundred" if rest else ""
             )
             feet = "" if (drop or (self.level > 1 and rng.random() < 0.2)) else " feet"
             if pilot:
-                verb = {"climb": "climbing", "descend": "descending"}[q]
+                verb = {"climb": "climbing", "descend": "descending", "maintain": "maintaining"}[q]
                 text = self._pick(
                     f"{verb} {num}{feet}", f"{verb} altitude {num}{feet}", f"{verb} to {num}{feet}"
                 )
+            elif q == "maintain":
+                text = self._pick(f"maintain {num} feet", f"maintain altitude {num}{feet}")
+            elif q == "climb" and self.level > 1 and rng.random() < 0.3:
+                feats.add("form:initial_climb")
+                text = self._pick(f"initial climb {num} feet", f"climb initially {num} feet")
             else:
                 text = self._pick(
                     f"{q} altitude {num}{feet}",
@@ -289,8 +371,12 @@ class Generator:
                         f"turning {side} heading {d(hdg)}",
                         f"heading {d(hdg)} {side}",
                     )
+                elif drop:
+                    feats.add("form:heading_no_keyword")
+                    text = f"{d(hdg)} degrees"
                 else:
-                    text = self._pick(f"heading {d(hdg)}", f"flying heading {d(hdg)}")
+                    text = self._pick(f"heading {d(hdg)}", f"flying heading {d(hdg)}",
+                                      f"heading {d(hdg)} degrees")  # fmt: skip
             elif side:
                 text = f"turn {side} heading {d(hdg)}"
             else:
@@ -299,7 +385,12 @@ class Generator:
                 )
             return [(text, kind)], Item(kind, hdg, side)
         if kind == "speed":
-            spd = str(rng.randrange(160, 290, 10))
+            spd = str(rng.randrange(120 if self.level > 1 else 160, 300, 10))
+            if self.level > 1 and rng.random() < 0.2:
+                feats.add("form:speed_limit")
+                text = self._pick(f"maximum {d(spd)} knots", f"maximum speed {d(spd)}",
+                                  f"{d(spd)} knots or less", f"maximum {d(spd)}")  # fmt: skip
+                return [(text, kind)], Item(kind, spd)
             if pilot:
                 text = (
                     self._pick(f"{d(spd)} knots", f"reducing {d(spd)}")
@@ -332,8 +423,13 @@ class Generator:
         if kind == "qnh":
             qnh = str(rng.randint(990, 1035))
             text = (
-                self._pick(f"qnh {d(qnh)}", f"q n h {d(qnh)}")
-                if self.level >= 3
+                self._pick(
+                    f"qnh {d(qnh)}",
+                    f"q n h {d(qnh)}",
+                    f"qnh is {d(qnh)}",
+                    f"qnh {d(qnh)} hectopascal",
+                )  # fmt: skip
+                if self.level >= 2
                 else f"qnh {d(qnh)}"
             )
             return [(text, kind)], Item(kind, qnh)
@@ -342,7 +438,7 @@ class Generator:
             khz = rng.choice(CHANNEL_ENDINGS)
             dec = rng.choice(("decimal", "decimal", "point"))
             num = f"{d(mhz)} {dec} {d(khz)}"
-            station = rng.choice(STATIONS)
+            station = self.station()
             if pilot:
                 if drop:
                     feats.add("form:frequency_no_decimal")
@@ -359,24 +455,22 @@ class Generator:
             return pieces, Item(kind, f"{mhz}.{khz}")
         if kind == "runway":
             words, value = self._runway()
-            lead = self._pick(
-                "expect ils approach",
-                "expect",
-                "vacate",
-                "cross",
-                "backtrack",
-                "established localizer",
-                "established ils",
-                "fully established",
-                "for",
-                "ready for departure",
-                "via",
-                "continue approach",
-                "",
-            )
-            if self.level > 1 and lead.startswith(("established", "fully")) and rng.random() < 0.5:
+            leads = ["expect ils approach", "expect", "vacate", "cross", "backtrack",
+                     "established localizer", "established ils", "fully established", "for",
+                     "ready for departure", "via", "continue approach", ""]  # fmt: skip
+            if self.level > 1:
+                leads += VFR_RUNWAY_LEADS
+            lead = rng.choice(leads)
+            if (self.level > 1 and lead.startswith(NO_KEYWORD_LEADS)
+                    and rng.random() < 0.5):  # fmt: skip
                 feats.add("form:runway_no_keyword")
                 return [(f"{lead} {words}", kind)], Item(kind, value)
+            if self.level > 1 and not lead and rng.random() < 0.4:
+                # "runway two five, cleared touch and go": the instruction follows the runway
+                feats.add("form:runway_then_circuit")
+                return [(f"runway {words}", kind), (rng.choice(CIRCUIT_TAILS), None)], Item(
+                    kind, value
+                )
             pieces = ([(lead, None)] if lead else []) + [(f"runway {words}", kind)]
             return pieces, Item(kind, value)
         if kind in ("cleared_to_land", "cleared_for_takeoff", "line_up", "hold_short"):
@@ -391,6 +485,18 @@ class Generator:
             )
             if kind == "cleared_for_takeoff" and self.level > 1 and rng.random() < 0.25:
                 return self._line_up_and_takeoff(words, value, no_runway, feats)
+            if kind == "hold_short" and self.level > 1 and rng.random() < 0.3:
+                # a named holding point: "taxi to holding point bravo (runway two five)"
+                feats.add("form:named_holding_point")
+                point = spell(rng.choice("abcdefghkmnpswz"))
+                if rng.random() < 0.4:
+                    point += " " + PLAIN_DIGITS[rng.randint(1, 9)]
+                verb = self._pick(
+                    "taxi to holding point", "holding point", "taxi to holding position",
+                    "hold at holding point",
+                )  # fmt: skip
+                text = f"{verb} {point}" + ("" if no_runway else f" runway {words}")
+                return [(text, kind)], Item(kind, "" if no_runway else value)
             phrase = {
                 "cleared_to_land": self._pick("cleared to land", "clear to land", "clear land"),
                 "cleared_for_takeoff": self._pick(
@@ -469,15 +575,40 @@ class Generator:
         v = "" if no_runway else value
         return pieces, [Item("line_up", v), Item("cleared_for_takeoff", v)]
 
+    def station(self) -> str:
+        """A station name: a known one, or at level 2+ a city never heard before."""
+        if self.level > 1 and self.rng.random() < 0.35:
+            return f"{self._novel_word()} {self.rng.choice(STATION_KINDS)}"
+        return self.rng.choice(STATIONS)
+
+    def _wind(self) -> str:
+        rng, d = self.rng, self._digits
+        direction = f"{rng.randrange(10, 370, 10):03d}"
+        speed = rng.randint(2, 25)
+        text = f"wind {d(direction)} degrees {d(str(speed))} knots"
+        if self.level == 1:
+            return text
+        extra = rng.random()
+        if extra < 0.2:
+            text += f" gusting {d(str(speed + rng.randint(5, 15)))}"
+        elif extra < 0.35:
+            lo = (int(direction) - rng.randrange(30, 70, 10)) % 360 or 360
+            hi = (int(direction) + rng.randrange(30, 70, 10)) % 360 or 360
+            text += f" variable between {d(f'{lo:03d}')} and {d(f'{hi:03d}')} degrees"
+        elif extra < 0.45:
+            text += (
+                f" maximum {d(str(speed + rng.randint(3, 10)))} minimum {d(str(max(1, speed - 4)))}"
+            )
+        elif extra < 0.55:
+            text = f"wind {d(direction)} at {d(str(speed))}"
+        return text
+
     def distractor(self, wind: bool = False) -> str:
         rng, d = self.rng, self._digits
         if wind:
-            return self._pick(
-                f"wind {d(f'{rng.randrange(10, 370, 10):03d}')} degrees "
-                f"{d(str(rng.randint(2, 25)))} knots",
-                "wind calm",
-                "wind is calm",
-            )
+            return self._pick(self._wind(), self._wind(), "wind calm", "wind is calm")
+        if self.level > 1 and rng.random() < 0.45:
+            return self._wider_distractor()
         return rng.choice([
             lambda: f"wind {d(f'{rng.randrange(10, 370, 10):03d}')} degrees "
                     f"{d(str(rng.randint(2, 25)))} knots",
@@ -507,6 +638,46 @@ class Generator:
             lambda: "squawk ident",
         ])()  # fmt: skip
 
+    def _wider_distractor(self) -> str:
+        """Things said on any frequency that carry numbers or keywords but no clearance."""
+        rng, d = self.rng, self._digits
+        clock = (
+            PLAIN_DIGITS[rng.randint(1, 9)]
+            if rng.random() < 0.8
+            else self._pick("ten", "eleven", "twelve")
+        )
+        thousands, rest = divmod(rng.randrange(1000, 12000, 500), 1000)
+        alt = f"{say(str(thousands), plain=True)} thousand" + (
+            f" {PLAIN_DIGITS[rest // 100]} hundred" if rest else ""
+        )
+        return rng.choice([
+            lambda: self._wind(),
+            lambda: f"traffic at your {clock} o clock {PLAIN_DIGITS[rng.randint(2, 9)]} miles "
+                    f"{self._pick('opposite direction', 'same direction', 'crossing')} "
+                    f"{alt} feet",
+            lambda: f"traffic {self._pick('a cessna', 'a helicopter', 'an airbus', 'a glider')} "
+                    f"{alt} feet not verified",
+            lambda: f"passing {alt} feet",
+            lambda: f"passing flight level {d(f'{rng.randrange(50, 400, 10):03d}')}",
+            lambda: f"{PLAIN_DIGITS[rng.randint(2, 9)]} miles from {self._novel_word()}",
+            lambda: "frequency change approved",
+            lambda: f"report {spell(rng.choice('ehnswz'))} {PLAIN_DIGITS[rng.randint(1, 3)]}",
+            lambda: f"enter control zone via {self._pick('route', 'sector')} "
+                    f"{spell(rng.choice('ehnswz'))}",
+            lambda: f"cleared to {self._novel_word()} via {self._novel_word()} "
+                    f"{PLAIN_DIGITS[rng.randint(1, 9)]} {LETTERS[rng.choice('abcdekmnpqrstz')]} "
+                    "departure",
+            lambda: self._pick("orbit approved", "hold position", "go around", "report final",
+                               "report downwind", "number one", "number two", "continue approach",
+                               "touch and go approved", "full stop", "request startup",
+                               "ready for taxi", "startup approved", "squawk vfr", "identified",
+                               "radar contact", "say again", "stand by", "negative"),
+            lambda: f"time {d(str(rng.randint(0, 59)).zfill(2))}",
+            lambda: f"information {LETTERS[rng.choice('abcdefghklmnopqrs')]} received",
+            lambda: f"we are {PLAIN_DIGITS[rng.randint(2, 9)]} persons on board",
+            lambda: f"{self.station()} {self._pick('hello', 'good day', 'bonjour')}",
+        ])()  # fmt: skip
+
     # -- whole transmissions ------------------------------------------------------------
     def example(self) -> Example:
         rng, feats = self.rng, set()
@@ -524,6 +695,11 @@ class Generator:
                 kinds.append(k)
 
         cs_text = self.callsign(feats) if rng.random() < 0.92 else ""
+        # "heavy" / "super" follow airline callsigns of big aircraft; they aren't the callsign
+        heavy = self.level > 1 and cs_text and "callsign:airline" in feats and rng.random() < 0.12
+        cs_piece = [(cs_text, "callsign")] + (
+            [(self._pick("heavy", "heavy", "super"), None)] if heavy else []
+        )
         items: list[Item] = []
         body: list = []
         for idx, k in enumerate(kinds):
@@ -544,16 +720,16 @@ class Generator:
         pieces: list = []
         if self._p("station"):
             feats.add("noise:station")
-            pieces.append((rng.choice(STATIONS), None))
+            pieces.append((self.station(), None))
         if pilot:
             if rng.random() < 0.25:
                 pieces.append((rng.choice(ACKS), None))
             if cs_text and rng.random() < 0.3:
-                pieces += [(cs_text, "callsign")] + body
+                pieces += cs_piece + body
             else:
-                pieces += body + ([(cs_text, "callsign")] if cs_text else [])
+                pieces += body + (cs_piece if cs_text else [])
         else:
-            pieces += [(cs_text, "callsign")] if cs_text else []
+            pieces += cs_piece if cs_text else []
             if self._p("greeting"):
                 feats.add("noise:greeting")
                 pieces.append((rng.choice(GREETINGS), None))

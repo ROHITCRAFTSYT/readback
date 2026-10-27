@@ -17,9 +17,12 @@ hand-labeled real transmissions, reaches GOLD_BAR item F1 and beats the rule-bas
 Training carries on after that on level 4, a stress level with every kind of noise at once,
 under the same promotion rule.
 
-The ATCO2 blind test (`gold.load_blind`) is scored for every new champion and reported next
-to the rest, but nothing here reads it to decide anything: not promotion, focus, levels or
-optimality.
+The ATCO2 blind test (`gold.load_blind`) and the retired first ATCO2 set (`gold.load_seen`)
+are scored for every new champion and reported next to the rest, but nothing here reads them
+to decide anything: not promotion, focus, levels or optimality.
+
+When the generator's version changes, the champion's vocabulary grows to cover the new
+words (`Tagger.grow`) and it is re-scored; training then carries on from there.
 
 All state lives in one directory (status.json, log.jsonl, champion.pt), so a run can be
 stopped and resumed at any round.
@@ -27,6 +30,7 @@ stopped and resumed at any round.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import time
@@ -38,7 +42,7 @@ import torch
 from readback import rules
 from readback.tagger.decode import TAGS, tidy
 from readback.tagger.evaluate import same, score
-from readback.tagger.gold import blind_info, load_blind, load_gold
+from readback.tagger.gold import BLIND_CORPUS, blind_info, load_blind, load_gold, load_seen
 from readback.tagger.model import Tagger
 from readback.tagger.synth import MAX_LEVEL, TELEPHONY, VERSION, dataset
 
@@ -81,22 +85,28 @@ class Trainer:
         self.replay: list = []
         gold = load_gold()
         self.gold = {s: [g for g in gold if g.split == s] for s in ("dev", "test")}
-        self.blind = load_blind()
+        # reported only: never read by any training decision
+        self.reported = {k: v for k, v in (("blind", load_blind()), ("atco2_seen", load_seen()))
+                         if v}  # fmt: skip
         self._val: dict[int, list] = {}
         if self.status_path.exists() and self.champion_path.exists():
             self.status = json.loads(self.status_path.read_text(encoding="utf-8"))
             self.champion = Tagger.load(self.champion_path)
             if self.status.get("generator_version") != VERSION:
-                self._rescore(f"generator changed to version {VERSION}")
-            elif self.blind and "blind" not in self.status["champion"]:
-                self._rescore("blind test added")
+                added = self.champion.grow(self._vocab_sentences())
+                self._save_champion()
+                self._rescore(f"generator changed to version {VERSION}; {added} new words")
+            elif self.status.get("reported_sets") != self._reported_sets():
+                self._rescore("ATCO2 test sets changed")
         else:
             self._start()
 
     # -- setup --------------------------------------------------------------------------
+    def _vocab_sentences(self) -> list[list[str]]:
+        return [e.tokens for lvl in (1, 2, 3) for e in dataset(lvl, 8000, f"vocab:{lvl}:{VERSION}")]
+
     def _start(self) -> None:
-        sentences = [e.tokens for lvl in (1, 2, 3) for e in dataset(lvl, 8000, f"vocab:{lvl}")]
-        self.champion = Tagger.build(sentences)
+        self.champion = Tagger.build(self._vocab_sentences())
         self.status = {
             "started": now(),
             "generator_version": VERSION,
@@ -119,7 +129,7 @@ class Trainer:
             },  # fmt: skip
         }
         self.status["baseline"] = self._baseline()
-        self.status["champion"].update(self._evaluate(self.champion), **self._blind(self.champion))
+        self.status["champion"].update(self._evaluate(self.champion), **self._report(self.champion))
         self._save_champion()
         self._write_status()
 
@@ -135,14 +145,13 @@ class Trainer:
             for split, rows in self.gold.items():
                 preds = [tidy(rules.parse(g.text, designators)) for g in rows]
                 out[f"gold_{split}"] = _slim(score(preds, [g.clearance for g in rows]))
-        if self.blind:
-            from readback.tagger.gold import BLIND_CORPUS
-
+        if self.reported:
             designators = discover_designators(
                 t.text for t in load_transcripts(BLIND_CORPUS, "atco2-1h")
             )
-            preds = [tidy(rules.parse(g.text, designators)) for g in self.blind]
-            out["blind"] = _slim(score(preds, [g.clearance for g in self.blind]))
+            for key, rows in self.reported.items():
+                preds = [tidy(rules.parse(g.text, designators)) for g in rows]
+                out[key] = _slim(score(preds, [g.clearance for g in rows]))
         designators = {w for w in TELEPHONY if " " not in w}
         for lvl in range(1, MAX_LEVEL + 1):
             val = self.val(lvl)
@@ -168,13 +177,20 @@ class Trainer:
                 out[f"gold_{split}"] = _slim(self._score(tagger, rows))
         return out
 
-    def _blind(self, tagger: Tagger) -> dict:
-        """The blind score, for reporting only."""
-        return {"blind": _slim(self._score(tagger, self.blind))} if self.blind else {}
+    def _reported_sets(self) -> dict[str, str]:
+        """Which ATCO2 sets the reported scores are on (a short hash of their ids)."""
+        return {k: hashlib.sha1("|".join(g.id for g in rows).encode()).hexdigest()[:12]
+                for k, rows in self.reported.items()}  # fmt: skip
+
+    def _report(self, tagger: Tagger) -> dict:
+        """Scores on the ATCO2 sets, for reporting only."""
+        return {k: _slim(self._score(tagger, rows)) for k, rows in self.reported.items()}
 
     def _rescore(self, why: str) -> None:
         self.status["generator_version"] = VERSION
-        self.status["champion"].update(self._evaluate(self.champion), **self._blind(self.champion))
+        for key in ("blind", "atco2_seen"):  # scores on a set that's gone or was replaced
+            self.status["champion"].pop(key, None)
+        self.status["champion"].update(self._evaluate(self.champion), **self._report(self.champion))
         self.status["baseline"] = self._baseline()
         self._log({"event": "rescore", "why": why, "champion": self.status["champion"]})
         self._write_status()
@@ -247,7 +263,7 @@ class Trainer:
         promoted = better and dev_ok
         if promoted:
             self.champion = candidate
-            st["champion"] = {"round": rnd, **cand, **self._blind(candidate)}
+            st["champion"] = {"round": rnd, **cand, **self._report(candidate)}
             st["stagnant"] = 0
             self._save_champion()
         else:
@@ -296,7 +312,7 @@ class Trainer:
             "champion_round": st["champion"]["round"],
             "champion": {k: st["champion"][k].get(m) for k, m in (
                 ("val", "exact"), ("gold_dev", "item_f1"), ("gold_test", "item_f1"),
-                ("blind", "item_f1"))
+                ("blind", "item_f1"), ("atco2_seen", "item_f1"))
                 if k in st["champion"]},
             "probe_exact": round(m["exact"], 4),
             "weak": sorted(st["focus"], key=st["focus"].get, reverse=True)[:5],
@@ -325,9 +341,12 @@ class Trainer:
 
     def _write_status(self) -> None:
         self.status["updated"] = now()
-        if self.blind and (info := blind_info()):
-            keep = ("transmissions", "airports", "frozen", "generator_unchanged")
+        self.status["reported_sets"] = self._reported_sets()
+        keep = ("transmissions", "airports", "frozen", "generator_unchanged")
+        if "blind" in self.reported and (info := blind_info()):
             self.status["blind"] = {k: info[k] for k in keep}
+        else:
+            self.status.pop("blind", None)
         tmp = self.status_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.status, indent=2), encoding="utf-8")
         tmp.replace(self.status_path)
@@ -348,9 +367,10 @@ def fresh_check(tagger: Tagger, seed: str) -> dict:
         if rows:
             p = tagger.parse_tokens([g.tokens for g in rows])
             out[f"gold_{split}"] = _slim(score(p, [g.clearance for g in rows]))
-    if blind := load_blind():
-        p = tagger.parse_tokens([g.tokens for g in blind])
-        out["blind"] = _slim(score(p, [g.clearance for g in blind]))
+    for key, rows in (("blind", load_blind()), ("atco2_seen", load_seen())):
+        if rows:
+            p = tagger.parse_tokens([g.tokens for g in rows])
+            out[key] = _slim(score(p, [g.clearance for g in rows]))
     return out
 
 

@@ -19,5 +19,6 @@
   "with_callsign": 234,
   "generator_version": 2,
   "generator_sha256": "1599a3e11d2ab4f00c2613f91acd52475729d065b3f675d7076eae917eb46e36",
-  "frozen": "2026-10-27T10:47:33Z"
+  "frozen": "2026-10-27T10:47:33Z",
+  "retired": "2026-10-27: generator v3 was written after these clips were labeled, so this set is no longer blind. Superseded by atco2-blind-2."
 }

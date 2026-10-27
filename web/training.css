@@ -50,6 +50,7 @@ a.tab { text-decoration: none; display: inline-block; }
 .blind .kpi { background: var(--panel-2); }
 .blind-note { margin: 0; padding: 10px 14px 12px; font-size: 12px; color: var(--muted); }
 .blind-note .ok { color: var(--good); }
+.blind-note b { color: var(--text); font-family: var(--mono); font-weight: 500; }
 .blind-note .warn { color: var(--warn); }
 
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }

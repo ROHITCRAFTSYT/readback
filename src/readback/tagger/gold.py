@@ -5,12 +5,13 @@ labeled by hand: utterance id, callsign and clearance items. It stores no transc
 the text is joined from the downloaded corpus. Ambiguous clips were left out. A fixed hash of
 the id splits it in half: "dev" may guide training decisions, "test" is only ever reported.
 
-The **blind test** is a separate set: 265 ATCO2 transmissions from seven airports (Sion, Bern,
-Zurich, Sydney, Bratislava, Prague, Brno), labeled the same way after the generator was
-written and never used to change it. ATCO2's terms don't allow sharing derived data, so the
-labels stay local in `data/blind/` (gitignored). `data/gold/atco2-blind.manifest.json` is
-committed instead, with the SHA-256 of the labels and of the generator when the labels were
-frozen. The blind set is scored only as a whole, and only for reporting.
+The **blind test** is a separate set of ATCO2 transmissions (Sion, Bern, Zurich, Sydney,
+Bratislava, Prague, Brno), labeled the same way after the current generator was written and
+never used to change it. ATCO2's terms don't allow sharing derived data, so the labels stay
+local in `data/blind/` (gitignored); `data/gold/atco2-blind-2.manifest.json` is committed
+instead, with the SHA-256 of the labels and of the generator when they were frozen. It is
+scored only as a whole, and only for reporting. Set 1 (`atco2-blind.manifest.json`) was
+the first such set; it is retired because generator v3 was written after labeling it.
 
 Labeling conventions follow the decoder: a value cut off by the end of the clip is not an
 item; a callsign is whatever is left of it when two or more tokens survive; a runway
@@ -32,8 +33,12 @@ from readback.normalize import canonical
 ROOT = Path(__file__).resolve().parents[3]
 GOLD = ROOT / "data" / "gold" / "uwb-atcc-gold.jsonl"
 CORPUS = ROOT / "data" / "raw" / "uwb_atcc_test.parquet"
-BLIND = ROOT / "data" / "blind" / "atco2-blind.jsonl"
-BLIND_MANIFEST = ROOT / "data" / "gold" / "atco2-blind.manifest.json"
+BLIND = ROOT / "data" / "blind" / "atco2-blind-2.jsonl"
+BLIND_MANIFEST = ROOT / "data" / "gold" / "atco2-blind-2.manifest.json"
+# The first blind set, retired: labeling it showed what generator v3 had to cover, so it is
+# no longer blind. It is still scored, as "ATCO2 set 1 (seen)", and is never trained on.
+SEEN = ROOT / "data" / "blind" / "atco2-blind.jsonl"
+SEEN_MANIFEST = ROOT / "data" / "gold" / "atco2-blind.manifest.json"
 BLIND_CORPUS = ROOT / "data" / "raw" / "atco2_1h_test.parquet"
 SYNTH = ROOT / "src" / "readback" / "tagger" / "synth.py"
 
@@ -99,3 +104,9 @@ def load_blind(
     if sha256(labels) != json.loads(manifest.read_text(encoding="utf-8"))["labels_sha256"]:
         raise BlindChanged(f"{labels.name} does not match the hash frozen in {manifest.name}")
     return _join(labels, corpus, "atco2-1h", lambda _: "blind")
+
+
+def load_seen() -> list[GoldExample]:
+    """The retired first ATCO2 set, held to its own frozen hash."""
+    return [GoldExample(g.id, g.text, g.tokens, g.clearance, "seen")
+            for g in load_blind(SEEN, BLIND_CORPUS, SEEN_MANIFEST)]  # fmt: skip

@@ -86,6 +86,14 @@ def viterbi(logp: np.ndarray) -> list[int]:
     return best[::-1]
 
 
+def _extend(emb: nn.Embedding, n: int) -> nn.Embedding:
+    bigger = nn.Embedding(emb.num_embeddings + n, emb.embedding_dim, padding_idx=0)
+    with torch.no_grad():
+        bigger.weight[: emb.num_embeddings] = emb.weight
+        bigger.weight[emb.num_embeddings :] = emb.weight[1]  # the <unk> row
+    return bigger
+
+
 class Tagger:
     def __init__(self, words: list[str], chars: list[str], config: dict | None = None):
         self.words = words
@@ -101,6 +109,23 @@ class Tagger:
         words = [PAD, UNK] + sorted(w for w, n in counts.items() if n >= min_count)
         chars = [PAD, UNK] + sorted({c for s in sentences for t in s for c in t})
         return cls(words, chars, config)
+
+    def grow(self, sentences: list[list[str]], min_count: int = 3) -> int:
+        """Add words and characters a newer generator uses. New rows start as copies of the
+        unknown-token row, so the tagger's answers don't change until it trains on them.
+        Returns how many words were added."""
+        counts = Counter(t for s in sentences for t in s)
+        new_words = sorted(w for w, n in counts.items() if n >= min_count and w not in self.word_ix)
+        new_chars = sorted({c for s in sentences for t in s for c in t} - set(self.char_ix))
+        if new_words:
+            self.net.words = _extend(self.net.words, len(new_words))
+            self.words = self.words + new_words
+            self.word_ix = {w: i for i, w in enumerate(self.words)}
+        if new_chars:
+            self.net.chars = _extend(self.net.chars, len(new_chars))
+            self.chars = self.chars + new_chars
+            self.char_ix = {c: i for i, c in enumerate(self.chars)}
+        return len(new_words)
 
     # -- tensors ------------------------------------------------------------------------
     def encode(self, sentences: list[list[str]], word_dropout: float = 0.0, rng=None):

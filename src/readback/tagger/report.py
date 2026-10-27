@@ -51,7 +51,8 @@ def render(state_dir: Path) -> str:
         "|---|---|---|---|---|",
     ]
     for key, name in (
-        ("blind", "**Blind: ATCO2, 7 airports**"),
+        ("blind", "**Blind: ATCO2 set 2, 7 airports**"),
+        ("atco2_seen", "ATCO2 set 1 (retired, not blind)"),
         ("gold_test", "Real radio, held-out half"),
         ("gold_dev", "Real radio, dev half"),
     ):
@@ -82,9 +83,16 @@ def render(state_dir: Path) -> str:
             f"labeled by hand and frozen on {blind['frozen'][:10]} before any parser saw them. The",
             "generator was written without them and is never changed because of them, so this",
             "is the honest estimate of accuracy on unseen radio. The labels stay local (ATCO2",
-            "terms); `data/gold/atco2-blind.manifest.json` holds their hash.",
+            "terms); `data/gold/atco2-blind-2.manifest.json` holds their hash.",
             "Generator unchanged since the freeze: "
             + ("**yes**." if blind["generator_unchanged"] else "**no** (see git history)."),
+            "",
+        ]
+    if "atco2_seen" in champ:
+        lines += [
+            "ATCO2 set 1 was the first blind set. Labeling it showed what the generator was",
+            "missing, so generator v3 was written after it and it is no longer blind. It is",
+            "still scored, as a check on those changes, and is never trained on.",
             "",
         ]
     lines += [

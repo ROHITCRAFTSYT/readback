@@ -105,6 +105,22 @@ def test_tagger_learns_and_round_trips(tmp_path):
     assert back.parse(text) == tagger.parse(text)  # half-precision weights, same answers
 
 
+def test_grow_adds_words_without_changing_answers():
+    import random
+
+    from readback.tagger.model import Tagger
+
+    torch.manual_seed(0)
+    tagger = Tagger.build([e.tokens for e in dataset(1, 300, "grow")])
+    sentences = [e.tokens for e in dataset(3, 40, "grow-check")]
+    before = tagger.predict(sentences)
+    new = [["touch", "and", "go", "gusting", "hectopascal", "heli"]] * 3
+    assert tagger.grow(new) >= 3
+    assert "hectopascal" in tagger.word_ix and tagger.predict(sentences) == before
+    words, _, _ = tagger.encode([["hectopascal"]], 0.0, random.Random(0))
+    assert words[0, 0].item() == tagger.word_ix["hectopascal"]
+
+
 def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
     for name, value in {"TRAIN_PER_ROUND": 120, "VAL_N": 60, "PROBE_N": 60, "EPOCHS": 1,
                         "REPLAY_MAX": 30}.items():  # fmt: skip
@@ -115,6 +131,7 @@ def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
     blind = [GoldExample(f"b{i}", " ".join(e.tokens), e.tokens, e.clearance, "blind")
              for i, e in enumerate(dataset(3, 20, "fake-blind"))]  # fmt: skip
     monkeypatch.setattr(train_mod, "load_blind", lambda: blind)
+    monkeypatch.setattr(train_mod, "load_seen", lambda: blind[:5])
     monkeypatch.setattr(train_mod, "blind_info", lambda: {
         "transmissions": 20, "airports": {"LSGS": 20}, "frozen": "2026-10-27T00:00:00Z",
         "generator_unchanged": True})  # fmt: skip
@@ -127,6 +144,7 @@ def test_trainer_round_resume_and_report(tmp_path, monkeypatch):
     assert status["round"] == 1 and not status["optimal"]
     assert status["champion"]["blind"]["n"] == 20 and status["blind"]["transmissions"] == 20
     assert "blind" in entry["champion"] and "blind" not in entry["candidate"]
+    assert status["champion"]["atco2_seen"]["n"] == 5 and "atco2_seen" in entry["champion"]
     again = train_mod.Trainer(state)  # resumes
     assert again.round()["round"] == 2
 

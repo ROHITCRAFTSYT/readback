@@ -1,7 +1,7 @@
 {
   "started": "2026-10-27T09:02:50Z",
   "generator_version": 2,
-  "round": 22,
+  "round": 42,
   "level": 3,
   "levels_passed": [
     {
@@ -17,42 +17,41 @@
   ],
   "optimal": false,
   "optimal_since": null,
-  "lr": 0.0005,
-  "stagnant": 0,
+  "lr": 0.000125,
+  "stagnant": 10,
   "focus": {
-    "kind:altitude": 1.02,
-    "kind:cleared_for_takeoff": 1.23,
-    "kind:cleared_to_land": 1.75,
-    "kind:flight_level": 1.08,
-    "kind:frequency": 1.13,
-    "kind:line_up": 1.46,
-    "kind:qnh": 1.19,
-    "noise:greeting": 1.27,
-    "noise:misheard": 1.03,
-    "noise:station": 1.11,
-    "noise:truncate": 1.8
+    "kind:cleared_to_land": 1.44,
+    "kind:direct_to": 1.41,
+    "kind:flight_level": 1.06,
+    "kind:frequency": 1.08,
+    "kind:line_up": 1.18,
+    "kind:runway": 1.04,
+    "kind:squawk": 1.42,
+    "noise:misheard": 1.05,
+    "noise:repeat": 1.71,
+    "noise:truncate": 1.66
   },
-  "examples_seen": 437320,
-  "train_seconds": 3337.6,
+  "examples_seen": 833122,
+  "train_seconds": 5724.9,
   "champion": {
-    "round": 22,
+    "round": 32,
     "val": {
       "n": 2000,
-      "exact": 0.9625,
-      "item_precision": 0.9894,
-      "item_recall": 0.9945,
-      "item_f1": 0.9919,
-      "callsign": 0.9795,
+      "exact": 0.967,
+      "item_precision": 0.9898,
+      "item_recall": 0.9953,
+      "item_f1": 0.9925,
+      "callsign": 0.9835,
       "kind_f1": {
         "altitude": 0.998,
-        "cleared_for_takeoff": 0.982,
-        "cleared_to_land": 0.975,
+        "cleared_for_takeoff": 0.993,
+        "cleared_to_land": 0.973,
         "direct_to": 0.983,
         "flight_level": 0.998,
         "frequency": 0.994,
-        "heading": 0.993,
+        "heading": 0.996,
         "hold_short": 0.987,
-        "line_up": 0.991,
+        "line_up": 0.988,
         "qnh": 1.0,
         "runway": 0.978,
         "speed": 1.0,
@@ -61,10 +60,10 @@
     },
     "gold_dev": {
       "n": 149,
-      "exact": 0.8591,
-      "item_precision": 0.9333,
+      "exact": 0.8725,
+      "item_precision": 0.9515,
       "item_recall": 0.9703,
-      "item_f1": 0.9515,
+      "item_f1": 0.9608,
       "callsign": 0.8993,
       "kind_f1": {
         "altitude": 1.0,
@@ -81,21 +80,43 @@
     },
     "gold_test": {
       "n": 138,
-      "exact": 0.8986,
-      "item_precision": 0.9537,
+      "exact": 0.9058,
+      "item_precision": 0.981,
       "item_recall": 0.9904,
-      "item_f1": 0.9717,
-      "callsign": 0.913,
+      "item_f1": 0.9856,
+      "callsign": 0.9203,
       "kind_f1": {
-        "altitude": 1.0,
+        "altitude": 0.0,
         "cleared_for_takeoff": 1.0,
         "cleared_to_land": 0.98,
         "frequency": 1.0,
-        "hold_short": 0.714,
+        "hold_short": 0.923,
         "line_up": 1.0,
-        "qnh": 0.0,
         "runway": 1.0,
         "speed": 1.0,
+        "squawk": 1.0
+      }
+    },
+    "blind": {
+      "n": 265,
+      "exact": 0.6491,
+      "item_precision": 0.7778,
+      "item_recall": 0.8867,
+      "item_f1": 0.8287,
+      "callsign": 0.7623,
+      "kind_f1": {
+        "altitude": 0.75,
+        "cleared_for_takeoff": 0.556,
+        "cleared_to_land": 0.915,
+        "direct_to": 0.2,
+        "flight_level": 1.0,
+        "frequency": 0.9,
+        "heading": 0.889,
+        "hold_short": 0.667,
+        "line_up": 0.818,
+        "qnh": 1.0,
+        "runway": 0.841,
+        "speed": 0.0,
         "squawk": 1.0
       }
     }
@@ -143,6 +164,29 @@
           "line_up": 0.947,
           "runway": 0.833,
           "speed": 0.75,
+          "squawk": 1.0
+        }
+      },
+      "blind": {
+        "n": 265,
+        "exact": 0.366,
+        "item_precision": 0.916,
+        "item_recall": 0.8,
+        "item_f1": 0.8541,
+        "callsign": 0.434,
+        "kind_f1": {
+          "altitude": 0.75,
+          "cleared_for_takeoff": 0.6,
+          "cleared_to_land": 0.857,
+          "direct_to": 1.0,
+          "flight_level": 1.0,
+          "frequency": 0.714,
+          "heading": 0.889,
+          "hold_short": 0.933,
+          "line_up": 0.909,
+          "qnh": 0.966,
+          "runway": 0.841,
+          "speed": 0.0,
           "squawk": 1.0
         }
       },
@@ -240,5 +284,19 @@
       }
     }
   },
-  "updated": "2026-10-27T10:04:53Z"
+  "updated": "2026-10-27T12:42:37Z",
+  "blind": {
+    "transmissions": 265,
+    "airports": {
+      "LSGS": 75,
+      "LSZB": 49,
+      "LSZH": 46,
+      "YSSY": 31,
+      "LZIB": 29,
+      "LKPR": 26,
+      "LKTB": 9
+    },
+    "frozen": "2026-10-27T10:47:33Z",
+    "generator_unchanged": true
+  }
 }

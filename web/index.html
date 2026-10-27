@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readback</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>Readback</h1>
+        <p>Readback and conformance monitor</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-mode="replay" aria-selected="true">Scenario</button>
+        <button role="tab" class="tab" data-mode="live" aria-selected="false">Live BLR traffic</button>
+      </div>
+      <label class="field replay-only">Seed <input id="seed" type="number" value="7" min="0"></label>
+      <label class="field replay-only">Speed
+        <select id="speed">
+          <option value="1">1×</option>
+          <option value="4" selected>4×</option>
+          <option value="10">10×</option>
+          <option value="30">30×</option>
+        </select>
+      </label>
+      <button id="play" class="primary replay-only">Play</button>
+      <label class="toggle replay-only"><input id="sound" type="checkbox"> Radio audio</label>
+      <span id="clock" class="clock">--:--</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="scope-wrap" aria-label="Radar scope">
+      <canvas id="scope"></canvas>
+      <div class="scope-note" id="scope-note">Press Play to replay a simulated Bengaluru approach frequency.</div>
+      <div class="stats">
+        <div><span id="stat-tx">0</span> transmissions</div>
+        <div><span id="stat-err" class="err">0</span> readback errors</div>
+        <div><span id="stat-track" class="err">0</span> track deviations</div>
+        <div><span id="stat-warn" class="warn">0</span> warnings</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel alerts">
+        <h2>Alerts <span id="alert-count" class="count">0</span></h2>
+        <ol id="alerts" class="list"><li class="empty">No alerts yet.</li></ol>
+      </section>
+      <section class="panel radio">
+        <h2>Frequency <span class="freq">127.850</span></h2>
+        <ol id="radio" class="list"><li class="empty">Radio is quiet.</li></ol>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    Simulated scenarios use an illustrative airspace, not real aeronautical data. Live traffic from the
+    <a href="https://opensky-network.org" target="_blank" rel="noopener">OpenSky Network</a>. Research prototype, not for operational use.
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

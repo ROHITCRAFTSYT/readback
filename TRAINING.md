@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** training, round 160, level 3 (real radio: cut-offs, hesitations, misheard words)
+- **State:** training, round 189, level 3 (real radio: cut-offs, hesitations, misheard words)
 - **Champion:** round 109
-- **Trained for:** 6.9 h on 3,169,228 examples (started 2026-10-27, updated 2026-10-28 13:48 UTC)
+- **Trained for:** 7.8 h on 3,743,386 examples (started 2026-10-27, updated 2026-10-28 14:49 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_to_land` ×1.58
-- `noise:truncate` ×1.53
-- `kind:line_up` ×1.44
-- `kind:hold_short` ×1.37
-- `kind:direct_to` ×1.23
-- `kind:frequency` ×1.08
-- `noise:repeat` ×1.08
-- `kind:altitude` ×1.07
+- `noise:truncate` ×1.83
+- `kind:cleared_for_takeoff` ×1.7
+- `kind:qnh` ×1.44
+- `kind:frequency` ×1.41
+- `kind:cleared_to_land` ×1.27
+- `kind:line_up` ×1.18
+- `kind:runway` ×1.17
+- `kind:direct_to` ×1.16
 
 ## Daily fresh checks
 
@@ -67,18 +67,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 160 | 3 | 96.2% | 98.5% |  |  |
-| 159 | 3 | 96.5% | 96.5% |  |  |
-| 158 | 3 | 96.2% | 97.5% |  |  |
-| 157 | 3 | 96.2% | 98.5% |  |  |
-| 156 | 3 | 96.5% | 98.5% |  |  |
-| 155 | 3 | 96.3% | 97.5% |  |  |
-| 154 | 3 | 96.2% | 98.5% |  |  |
-| 153 | 3 | 96.4% | 98.5% |  |  |
-| 152 | 3 | 96.4% | 97.5% |  |  |
-| 151 | 3 | 96.0% | 98.5% |  |  |
-| 150 | 3 | 96.5% | 97.5% |  |  |
-| 149 | 3 | 96.3% | 97.5% |  |  |
-| 148 | 3 | 96.4% | 98.5% |  |  |
-| 147 | 3 | 96.3% | 98.5% |  |  |
-| 146 | 3 | 96.2% | 98.5% |  |  |
+| 189 | 3 | 96.2% | 98.5% |  |  |
+| 188 | 3 | 96.2% | 98.5% |  |  |
+| 187 | 3 | 96.5% | 98.5% |  |  |
+| 186 | 3 | 96.4% | 98.5% |  |  |
+| 185 | 3 | 96.5% | 98.5% |  |  |
+| 184 | 3 | 96.5% | 98.5% |  |  |
+| 183 | 3 | 96.2% | 97.5% |  |  |
+| 182 | 3 | 96.4% | 98.5% |  |  |
+| 181 | 3 | 96.3% | 97.5% |  |  |
+| 180 | 3 | 96.1% | 98.5% |  |  |
+| 179 | 3 | 96.5% | 99.5% |  |  |
+| 178 | 3 | 96.4% | 98.5% |  |  |
+| 177 | 3 | 96.4% | 97.5% |  |  |
+| 176 | 3 | 96.4% | 97.5% |  |  |
+| 175 | 3 | 96.3% | 98.5% |  |  |

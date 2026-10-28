@@ -87,19 +87,35 @@ class MuseChat:
                 "json_schema": {"name": name, "strict": True, "schema": schema},
             },
         }
+        content = self._post(body)["content"]
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ChatError(f"model returned invalid JSON: {content[:200]}") from exc
+
+    def chat(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
+        """One assistant turn; with tools, the reply may hold tool_calls instead of text."""
+        body: dict = {"model": self.model, "messages": messages}
+        if tools:
+            body["tools"] = tools
+        return self._post(body)
+
+    def _post(self, body: dict) -> dict:
         for attempt in range(self._max_retries + 1):
-            resp = self._client.post(self._url, headers=self._headers, json=body)
+            try:
+                resp = self._client.post(self._url, headers=self._headers, json=body)
+            except httpx.TransportError as exc:  # timeout or dropped connection: try again
+                if attempt == self._max_retries:
+                    raise ChatError(f"{type(exc).__name__}: {exc}") from exc
+                self._sleep(min(2.0**attempt, 30.0))
+                continue
             if resp.status_code not in RETRYABLE or attempt == self._max_retries:
                 break
             retry_after = resp.headers.get("Retry-After", "")
             self._sleep(float(retry_after) if retry_after.isdigit() else min(2.0**attempt, 30.0))
         if resp.status_code != 200:
             raise ChatError(f"HTTP {resp.status_code}: {resp.text[:300]}")
-        content = resp.json()["choices"][0]["message"]["content"]
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as exc:
-            raise ChatError(f"model returned invalid JSON: {content[:200]}") from exc
+        return resp.json()["choices"][0]["message"]
 
 
 class SparkParser:

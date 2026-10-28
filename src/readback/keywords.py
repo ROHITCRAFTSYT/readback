@@ -6,6 +6,8 @@ import random
 
 from readback.normalize import spoken
 
+MAX_CHARS = 30  # Voice Transcribe rejects longer keywords (HTTP 400)
+
 PHRASEOLOGY = [
     "alfa", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliett",
     "kilo", "lima", "mike", "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango",
@@ -25,6 +27,14 @@ def callsign_keywords(
     aircraft in range, in random order so position leaks nothing."""
     others = [c for c in {tuple(c) for c in pool} if list(c) != target]
     picked = rng.sample(others, min(n_distractors, len(others)))
-    phrases = [spoken(list(c)) for c in [tuple(target), *picked]]
+    phrases = [fit(spoken(list(c))) for c in [tuple(target), *picked]]
     rng.shuffle(phrases)
     return phrases
+
+
+def fit(phrase: str) -> str:
+    """Cut a phrase at the last word boundary within MAX_CHARS: "air portugal nine three one
+    charlie" keeps "air portugal nine three one", which still biases toward the right callsign."""
+    while len(phrase) > MAX_CHARS and " " in phrase:
+        phrase = phrase.rsplit(" ", 1)[0]
+    return phrase[:MAX_CHARS]

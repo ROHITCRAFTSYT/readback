@@ -1,6 +1,6 @@
 import random
 
-from readback.keywords import callsign_keywords
+from readback.keywords import MAX_CHARS, callsign_keywords, fit
 from readback.metrics import (
     contains,
     digit_errors,
@@ -69,3 +69,9 @@ def test_callsign_keywords_include_target_and_distractors():
     phrases = callsign_keywords(target, pool, 2, random.Random(0))
     assert "csa one delta zulu" in phrases
     assert len(phrases) == 3
+
+
+def test_long_callsigns_are_cut_at_a_word_boundary():
+    assert fit("air portugal nine three one charlie") == "air portugal nine three one"
+    assert fit("csa one delta zulu") == "csa one delta zulu"
+    assert len(fit("x" * 40)) == MAX_CHARS

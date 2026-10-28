@@ -19,6 +19,7 @@ from readback.normalize import canonical, spoken
         ("wind two four zero degrees twenty five knots", "wind 240 degrees 25 knots"),
         ("ok", "Okay."),
         ("niner", "nine"),
+        ("niner thousand", "nineer thousand"),  # how Voice Transcribe spells it
         ("juliett", "Juliet"),
     ],
 )

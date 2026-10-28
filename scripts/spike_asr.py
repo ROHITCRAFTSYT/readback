@@ -27,7 +27,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from readback.asr import TranscribeError, VoiceTranscribe
+from readback.asr import TranscribeError, VoiceTranscribe, drop_repeats
 from readback.audio import to_pcm16_wav
 from readback.datasets import DATASETS, Clip, load_clips
 from readback.keywords import PHRASEOLOGY, callsign_keywords
@@ -105,7 +105,10 @@ def main() -> int:
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--dry-run", action="store_true", help="no API calls; reference vs itself")
-    ap.add_argument("--out", type=Path, default=ROOT / "results" / "spike-asr.md")
+    ap.add_argument(
+        "--drop-repeats", action="store_true", help="score transcripts after asr.drop_repeats"
+    )
+    ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
     load_dotenv(ROOT / ".env")
 
@@ -161,7 +164,8 @@ def main() -> int:
             a["failed"] += 1
             print(f"  failed {clip.id} [{cond}]: {rec['error']}", file=sys.stderr)
             continue
-        ref, hyp = canonical(clip.text), canonical(rec["hypothesis"])
+        said = drop_repeats(rec["hypothesis"]) if args.drop_repeats else rec["hypothesis"]
+        ref, hyp = canonical(clip.text), canonical(said)
         for key, (e, n) in (("w", wer(ref, hyp)), ("d", digit_errors(ref, hyp))):
             a[key][0] += e
             a[key][1] += n
@@ -193,7 +197,8 @@ def main() -> int:
         "",
         f"Run {datetime.now(UTC):%Y-%m-%d %H:%M} UTC, seed {args.seed}, "
         f"{args.distractors} distractor callsigns, model `muse-voice-transcribe-1.0`"
-        + (" (**dry run: reference scored against itself**)" if args.dry_run else ""),
+        + (" (**dry run: reference scored against itself**)" if args.dry_run else "")
+        + (", transcripts cleaned by `asr.drop_repeats`" if args.drop_repeats else ""),
         "",
         "| Dataset | Keywords | Clips | Failed | WER | Digit error | Callsign accuracy "
         "| Median latency | Verdict |",
@@ -222,8 +227,11 @@ def main() -> int:
         "Data: ATCO2 1h test set (ATCO2 project, end-user data agreement) and UWB-ATCC "
         "(University of West Bohemia, CC BY-NC-SA 4.0). Only aggregate numbers are published.",
     ]
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    out = args.out or ROOT / "results" / (
+        "spike-asr-drop-repeats.md" if args.drop_repeats else "spike-asr.md"
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0
 

@@ -8,8 +8,8 @@ from readback.adsb import (
     StateVector,
     spoken_callsign,
 )
-from readback.clearance import Item
-from readback.monitor import Monitor, Transmission, describe, infer_role
+from readback.clearance import Clearance, Item, plausible
+from readback.monitor import Monitor, Transmission, by_number, describe, infer_role, snap
 
 T0 = 1_000_000.0
 
@@ -109,6 +109,35 @@ def test_infer_role():
     assert infer_role(text, parse(text)) == "controller"
     text = "descending flight level one hundred ifly nine six one"
     assert infer_role(text, parse(text)) == "pilot"
+    text = "ifly nine six one ready for departure runway two seven"
+    assert infer_role(text, parse(text)) == "pilot"
+    text = "ifly nine six one say request"
+    assert infer_role(text, parse(text)) == "controller"
+
+
+def test_misparsed_callsign_recovered_from_the_flight_number():
+    m = _monitor()
+    m.traffic = {"ifly 9 6 1", "swiss 1 2 3"}
+    m.on_transmission(Transmission(T0, "ifly nine six one, squawk four three one two"))
+    # "squawk" lost to the radio: "bravo four three one three" reads as a callsign.
+    clearance, role, [alert] = m.on_transmission(
+        Transmission(T0 + 5, "nine six one, one bravo four three one three", id="tx2")
+    )
+    assert clearance.callsign == "ifly 9 6 1" and role == "pilot" and "tx2" in m.snapped
+    assert alert.kind == "squawk" and alert.callsign == "ifly 9 6 1"
+    assert by_number("one two three and nine six one", m.traffic) is None  # two aircraft
+
+
+def test_reply_that_opens_with_the_callsign_is_the_pilot():
+    m = _monitor()
+    m.on_transmission(Transmission(T0, "ifly nine six one, squawk four three one two"))
+    _, role, [alert] = m.on_transmission(
+        Transmission(T0 + 5, "ifly nine six one, squawk four three one three")
+    )
+    assert (role, alert.kind, alert.heard) == ("pilot", "squawk", "4313")
+    # The next instruction to the same aircraft, once answered, is the controller again.
+    _, role, _ = m.on_transmission(Transmission(T0 + 9, "ifly nine six one, squawk two zero"))
+    assert role == "controller"
 
 
 def test_monitor_raises_readback_error_then_track_bust():
@@ -143,3 +172,57 @@ def test_monitor_callsign_confusion_and_no_readback():
     ]
     expired = m.expire(T0 + 30)
     assert [(a.kind, a.callsign) for a in expired] == [("no_readback", "ifly 9 6 1")]
+
+
+def test_snap_to_the_only_nearby_ads_b_callsign():
+    traffic = {"ifly 7 8 5", "ifly 7 5 8", "lufthansa 5 0 4"}
+    assert snap("ifly 7 8 4", traffic) == "ifly 7 8 5"  # one digit misheard
+    assert snap("i fly 7 8 5", traffic) == "ifly 7 8 5"  # airline misheard, digits right
+    assert snap("5 0 4", traffic) == "lufthansa 5 0 4"  # abbreviated
+    assert snap("ifly 7 5 8", traffic) == "ifly 7 5 8"  # a real aircraft stays itself
+    assert snap("ifly 7 5 5", traffic) == "ifly 7 5 5"  # one edit from two aircraft: unsure
+    assert snap("speedbird 1 2", traffic) == "speedbird 1 2"  # nothing close
+
+
+def test_monitor_snaps_misheard_callsigns_but_keeps_confusion():
+    m = _monitor()
+    m.on_state(sv(0, alt=12000, callsign="IGO961"))
+    m.on_state(sv(0, alt=12000, callsign="IGO916"))
+    m.on_transmission(Transmission(T0, "ifly nine six one, descend flight level one hundred"))
+    _, _, alerts = m.on_transmission(
+        Transmission(T0 + 6, "descending flight level one hundred, ifly nine six two", id="tx2")
+    )
+    assert alerts == [] and m.snapped == {"tx2": "ifly 9 6 2"}
+    m.on_transmission(Transmission(T0 + 10, "ifly nine six one, turn left heading two seven zero"))
+    _, _, alerts = m.on_transmission(
+        Transmission(T0 + 16, "left heading two seven zero, ifly nine one six")
+    )
+    assert [(a.kind, a.expected, a.heard) for a in alerts] == [
+        ("callsign", "ifly 9 6 1", "ifly 9 1 6")
+    ]
+
+
+def test_plausible_values():
+    ok = ["flight_level 80", "altitude 5000", "heading 360", "speed 250", "squawk 7700",
+          "qnh 1013", "qnh 2992", "frequency 118.1", "frequency 121.755", "runway 27l"]  # fmt: skip
+    bad = ["flight_level 2770", "altitude 90000", "heading 400", "speed 10",
+           "squawk 7248", "squawk 123", "qnh 1610", "frequency 1181"]  # fmt: skip
+    assert all(plausible(Item(*x.split())) for x in ok)
+    assert not any(plausible(Item(*x.split())) for x in bad)
+
+
+def test_impossible_instruction_is_dropped_but_impossible_readback_is_an_error():
+    cs = "ifly 9 6 1"
+    heard = {  # what a parser made of each transmission, as Spark did with a stutter
+        "ifly nine six one climb": Clearance(cs, [Item("flight_level", "2770", "climb")]),
+        "climbing ifly nine six one": Clearance(cs, [Item("flight_level", "270", "climb")]),
+        "ifly nine six one squawk": Clearance(cs, [Item("squawk", "7241")]),
+        "squawk ifly nine six one": Clearance(cs, [Item("squawk", "7248")]),
+    }
+    m = Monitor(heard.__getitem__)
+    m.on_transmission(Transmission(T0, "ifly nine six one climb", "controller"))
+    _, _, alerts = m.on_transmission(Transmission(T0 + 5, "climbing ifly nine six one", "pilot"))
+    assert alerts == [] and m.tracks[cs] == {}  # nothing to check against FL2770
+    m.on_transmission(Transmission(T0 + 30, "ifly nine six one squawk", "controller"))
+    _, _, alerts = m.on_transmission(Transmission(T0 + 35, "squawk ifly nine six one", "pilot"))
+    assert [(a.kind, a.expected, a.heard) for a in alerts] == [("squawk", "7241", "7248")]

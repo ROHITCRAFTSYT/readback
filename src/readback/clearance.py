@@ -37,6 +37,38 @@ class Item:
             raise ValueError(f"unknown item kind {self.kind!r}")
 
 
+def _number(value: str) -> float | None:
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def plausible(item: Item) -> bool:
+    """Whether a controller could assign this value at all: FL001-FL660, up to 60000 ft,
+    heading 000-360, 40-600 kt, a squawk of four octal digits, QNH in hPa or inHg, and a
+    frequency in the 108-137 MHz airband. A recognizer that hears "two seven seven zero" for
+    "two seven zero" gives FL2770. Pilots can still read back impossible values, and that is
+    a readback error, so this is only applied to instructions."""
+    v = _number(item.value)
+    match item.kind:
+        case "flight_level":
+            return v is not None and 1 <= v <= 660
+        case "altitude":
+            return v is not None and 0 < v <= 60000
+        case "heading":
+            return v is not None and 0 <= v <= 360
+        case "speed":
+            return v is not None and 40 <= v <= 600
+        case "squawk":
+            return len(item.value) == 4 and set(item.value) <= set("01234567")
+        case "qnh":
+            return v is not None and (900 <= v <= 1100 or 2800 <= v <= 3200)
+        case "frequency":
+            return v is not None and 108 <= v <= 137
+    return True
+
+
 @dataclass(frozen=True)
 class Clearance:
     callsign: str | None  # canonical tokens joined by spaces, e.g. "csa 1 d z"

@@ -25,3 +25,18 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run ruff check .
       - run: uv run pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - run: docker build -t readback .
+      - name: Smoke test
+        run: |
+          docker run -d --name rb -p 8000:8000 readback
+          for i in $(seq 30); do curl -sf localhost:8000/healthz && break; sleep 1; done
+          curl -sf localhost:8000/healthz | grep -q '"parser":"tagger"'
+          curl -sf localhost:8000/ | grep -q Readback
+          docker exec rb python -c "from readback.radio import default_tts, on_frequency; import numpy as np; assert len(on_frequency(default_tts(), 'ifly nine six one', 'pilot', np.random.default_rng(0))) > 16000"

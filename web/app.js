@@ -19,6 +19,10 @@ let source = null;
 let liveTimer = null;
 let simT = 0;
 let stats = { tx: 0, err: 0, track: 0, warn: 0 };
+let parserName = "tagger";
+let sessionId = null; // the server's record of this replay or recording, for reports
+let museOK = false;
+const PARSERS = { tagger: "tagger", spark: "Muse Spark", rules: "rules" };
 
 // ---------- callsign matching (mirrors readback.compare.same_callsign) ----------
 function tail(cs) {
@@ -212,8 +216,31 @@ function onTx(tx) {
   }
   const text = document.createElement("div");
   text.className = "text";
-  text.textContent = tx.text;
+  text.textContent = tx.asr_error ? "(not transcribed)" : tx.text;
   li.append(head, text);
+  if (tx.script != null) {
+    // Listening: show the script when the transcript differs, and what each step took.
+    const words = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).join(" ");
+    if (words(tx.script) !== words(tx.text)) {
+      const said = document.createElement("div");
+      said.className = "said";
+      said.textContent = tx.script;
+      li.append(said);
+    }
+    const via = document.createElement("div");
+    via.className = "via";
+    const part = (cls, label) => {
+      const s = document.createElement("span");
+      if (cls) s.className = cls;
+      s.textContent = label;
+      via.append(s);
+    };
+    if (tx.asr_error) part("fail", `Voice Transcribe failed: ${tx.asr_error}`);
+    else part("", `Voice Transcribe ${tx.asr_s != null ? `${tx.asr_s.toFixed(1)} s` : "(cached)"}`);
+    if (tx.parse_s != null) part("", `${PARSERS[parserName]} ${tx.parse_s < 0.05 ? "<0.1" : tx.parse_s.toFixed(1)} s`);
+    if (tx.snapped_from) part("snap", `heard ${tx.snapped_from.toUpperCase()}, matched to ADS-B`);
+    li.append(via);
+  }
   if (tx.items.length) {
     const chips = document.createElement("div");
     chips.className = "chips";
@@ -279,6 +306,13 @@ function onAlert(alert) {
   msg.className = "msg";
   msg.textContent = alert.message;
   li.append(msg);
+  if (museOK && sessionId && alert.index != null) {
+    const btn = document.createElement("button");
+    btn.className = "draft";
+    btn.textContent = "Draft occurrence report";
+    btn.addEventListener("click", () => draftReport(sessionId, alert.index, btn));
+    li.append(btn);
+  }
   prepend("alerts", li);
 
   const ac = aircraftFor(alert.callsign);
@@ -293,6 +327,88 @@ function onAlert(alert) {
   setStats();
 }
 
+// ---------- occurrence reports ----------
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+function inline(s) {
+  return escapeHtml(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/(^|\s)\*(.+?)\*(?=\s|$)/g, "$1<em>$2</em>");
+}
+function renderMarkdown(md) {
+  const out = [];
+  let list = false;
+  for (const line of md.split("\n")) {
+    if (line.startsWith("- ")) {
+      if (!list) { out.push("<ul>"); list = true; }
+      out.push(`<li>${inline(line.slice(2))}</li>`);
+      continue;
+    }
+    if (list) { out.push("</ul>"); list = false; }
+    if (line.startsWith("# ")) out.push(`<h1>${inline(line.slice(2))}</h1>`);
+    else if (line.startsWith("## ")) out.push(`<h3>${inline(line.slice(3))}</h3>`);
+    else if (line.startsWith("*") && line.endsWith("*")) out.push(`<p class="muted">${inline(line)}</p>`);
+    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+async function draftReport(sid, index, btn) {
+  btn.disabled = true;
+  btn.textContent = "Investigating…";
+  try {
+    const res = await fetch(`/api/report/${sid}/${index}`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    $("report-body").innerHTML = renderMarkdown(data.markdown);
+    const dl = $("report-dl");
+    if (dl.href.startsWith("blob:")) URL.revokeObjectURL(dl.href);
+    dl.href = URL.createObjectURL(new Blob([data.markdown], { type: "text/markdown" }));
+    $("report").showModal();
+    btn.textContent = "Open occurrence report";
+    btn.disabled = false;
+  } catch (err) {
+    btn.textContent = `Report failed: ${err.message}. Retry`;
+    btn.disabled = false;
+  }
+}
+$("report-close").addEventListener("click", () => $("report").close());
+
+// ---------- recordings ----------
+async function analyzeRecording() {
+  const file = $("rec-file").files[0];
+  if (!file) { $("scope-note").textContent = "Choose an audio file first."; return; }
+  reset();
+  museOK = (await fetch("/healthz").then((r) => r.json())).muse;
+  if (!museOK) { $("scope-note").textContent = "Checking recordings needs MODEL_API_KEY on the server."; return; }
+  parserName = $("parser").value;
+  $("analyze").disabled = true;
+  $("scope-note").textContent = `Transcribing ${file.name} with Voice Transcribe, then checking every readback…`;
+  try {
+    const q = new URLSearchParams({ callsigns: $("rec-cs").value, parser: parserName });
+    const res = await fetch(`/api/analyze?${q}`, { method: "POST", body: file });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    sessionId = data.session;
+    for (const tx of data.transmissions) onTx(tx);
+    for (const alert of [...data.alerts].sort((a, b) => a.t - b.t)) onAlert(alert);
+    simT = data.duration;
+    const audio = $("rec-audio");
+    audio.src = data.audio;
+    audio.hidden = false;
+    $("scope-note").textContent =
+      `${file.name} · ${fmtTime(data.duration)} · ${data.transmissions.length} transmissions · ` +
+      `${data.alerts.length} alerts · Voice Transcribe → ${PARSERS[parserName]} · no ADS-B for recordings`;
+  } catch (err) {
+    $("scope-note").textContent = `Could not check the recording: ${err.message}`;
+  } finally {
+    $("analyze").disabled = false;
+  }
+}
+$("analyze").addEventListener("click", analyzeRecording);
+
 // ---------- modes ----------
 function reset() {
   if (source) source.close();
@@ -300,6 +416,8 @@ function reset() {
   if (liveTimer) clearInterval(liveTimer);
   liveTimer = null;
   aircraft = new Map();
+  sessionId = null;
+  $("rec-audio").hidden = true;
   stats = { tx: 0, err: 0, track: 0, warn: 0 };
   simT = 0;
   clearList("alerts", "No alerts yet.");
@@ -314,11 +432,25 @@ async function play() {
   const info = await fetch(`/api/scenario/${seed}`).then((r) => r.json());
   center = info.center;
   roster = info.aircraft;
+  let listen = $("hear").value === "muse";
+  parserName = $("parser").value;
+  if (parserName === "tagger" && info.parser === "rules") parserName = "rules"; // no model here
+  if (!info.muse && (listen || parserName === "spark")) {
+    // No API key on this server: fall back to what runs locally.
+    listen = false;
+    if (parserName === "spark") parserName = info.parser;
+    $("hear").value = "script";
+    $("parser").value = parserName;
+  }
+  if (listen) $("sound").checked = true;
+  const how = listen ? `Voice Transcribe → ${PARSERS[parserName]}` : `script → ${PARSERS[parserName]}`;
   $("scope-note").textContent =
-    `Scenario ${info.name} · ${info.aircraft.length} aircraft · ${info.transmissions} transmissions` +
-    (info.has_audio ? " · radio audio available" : "");
+    `Scenario ${info.name} · ${info.aircraft.length} aircraft · ${info.transmissions} transmissions · ${how}` +
+    (!info.muse ? " · Muse unavailable (no API key)" : "");
   $("play").textContent = "Restart";
-  source = new EventSource(`/api/replay/${seed}?speed=${speed}`);
+  source = new EventSource(`/api/replay/${seed}?speed=${speed}&listen=${listen}&parser=${parserName}`);
+  museOK = info.muse;
+  source.addEventListener("session", (e) => { sessionId = JSON.parse(e.data).id; });
   source.addEventListener("tx", (e) => onTx(JSON.parse(e.data)));
   source.addEventListener("states", (e) => onStates(JSON.parse(e.data)));
   source.addEventListener("alert", (e) => onAlert(JSON.parse(e.data)));
@@ -358,10 +490,14 @@ function setMode(mode) {
     t.setAttribute("aria-selected", String(on));
   });
   document.body.classList.toggle("live", mode === "live");
+  document.body.classList.toggle("recording", mode === "recording");
   reset();
   if (mode === "live") {
     pollLive();
     liveTimer = setInterval(pollLive, 15000);
+  } else if (mode === "recording") {
+    $("scope-note").textContent =
+      "Check a recorded frequency: choose an audio file (up to 10 minutes) and press Check recording.";
   } else {
     $("scope-note").textContent = "Press Play to replay a simulated Bengaluru approach frequency.";
     $("play").textContent = "Play";

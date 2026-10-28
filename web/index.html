@@ -21,6 +21,7 @@
     <div class="controls">
       <div class="tabs" role="tablist">
         <button role="tab" class="tab active" data-mode="replay" aria-selected="true">Scenario</button>
+        <button role="tab" class="tab" data-mode="recording" aria-selected="false">Recording</button>
         <button role="tab" class="tab" data-mode="live" aria-selected="false">Live BLR traffic</button>
         <a class="tab" href="/training">Training</a>
       </div>
@@ -33,7 +34,24 @@
           <option value="30">30×</option>
         </select>
       </label>
+      <label class="field replay-only">Speech
+        <select id="hear" class="wide" title="Read the scripted text, or listen to the radio audio with Muse Voice Transcribe">
+          <option value="script" selected>Script</option>
+          <option value="muse">Voice Transcribe</option>
+        </select>
+      </label>
+      <label class="field not-live">Parser
+        <select id="parser" class="wide">
+          <option value="tagger" selected>Tagger</option>
+          <option value="spark">Muse Spark</option>
+          <option value="rules">Rules</option>
+        </select>
+      </label>
       <button id="play" class="primary replay-only">Play</button>
+      <label class="field recording-only">Audio <input id="rec-file" type="file" accept="audio/*,video/*" class="file"></label>
+      <label class="field recording-only" title="Optional: aircraft on frequency, as ADS-B shows them (SWR123) or spoken">Callsigns
+        <input id="rec-cs" type="text" class="wide-input" placeholder="SWR123, DLH4CK"></label>
+      <button id="analyze" class="primary recording-only">Check recording</button>
       <label class="toggle replay-only"><input id="sound" type="checkbox"> Radio audio</label>
       <span id="clock" class="clock">--:--</span>
     </div>
@@ -43,6 +61,7 @@
     <section class="scope-wrap" aria-label="Radar scope">
       <canvas id="scope"></canvas>
       <div class="scope-note" id="scope-note">Press Play to replay a simulated Bengaluru approach frequency.</div>
+      <audio id="rec-audio" class="rec-audio" controls hidden></audio>
       <div class="stats">
         <div><span id="stat-tx">0</span> transmissions</div>
         <div><span id="stat-err" class="err">0</span> readback errors</div>
@@ -62,6 +81,17 @@
       </section>
     </aside>
   </main>
+
+  <dialog id="report" class="report" aria-labelledby="report-title">
+    <div class="report-head">
+      <h2 id="report-title">Occurrence report</h2>
+      <div class="report-actions">
+        <a id="report-dl" class="tab" download="occurrence-report.md" href="#">Download .md</a>
+        <button id="report-close" class="tab" type="button">Close</button>
+      </div>
+    </div>
+    <div id="report-body" class="report-body"></div>
+  </dialog>
 
   <footer class="foot">
     Simulated scenarios use an illustrative airspace, not real aeronautical data. Live traffic from the

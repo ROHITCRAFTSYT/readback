@@ -3,7 +3,7 @@ import json
 import numpy as np
 from fastapi.testclient import TestClient
 
-from readback import rules
+from readback import rules, server
 from readback.adsb import KNOWN_DESIGNATORS
 from readback.monitor import Monitor
 from readback.radio import RATE, from_wav, to_wav, vhf
@@ -69,6 +69,37 @@ def test_scenario_info_and_replay_stream():
                 assert {"role", "text", "items", "callsign"} <= tx.keys()
     assert {"tx", "states", "end"} <= set(kinds)
     assert kinds[-1] == "end"
+
+
+def test_listen_replays_what_voice_transcribe_heard(tmp_path, monkeypatch):
+    class FakeASR:
+        def transcribe(self, wav, keywords):
+            assert "flight level" in keywords
+            return type("T", (), {"transcript": wav.decode().capitalize() + "."})()
+
+    def fake_audio(scen, seed, i, ev):  # the "audio" is the text, so the fake can hear it
+        (tmp_path / f"{ev['id']}.wav").write_bytes(ev["text"].encode())
+        return f"{ev['id']}.wav"
+
+    monkeypatch.setattr(server, "SCENARIOS", tmp_path)
+    monkeypatch.setattr(server, "ASR_CACHE", tmp_path / "asr")
+    monkeypatch.setattr(server, "_audio", fake_audio)
+    monkeypatch.setattr(server, "_asr", lambda: FakeASR())
+    client = TestClient(app)
+
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    assert client.get("/api/replay/3?listen=true").status_code == 400
+
+    monkeypatch.setenv("MODEL_API_KEY", "test")
+    txs = []
+    with client.stream("GET", "/api/replay/3?speed=1000&listen=true&parser=rules") as resp:
+        for line in resp.iter_lines():
+            if line.startswith("data: ") and '"script"' in line:
+                txs.append(json.loads(line.removeprefix("data: ")))
+    assert txs and all(tx["text"] == tx["script"].capitalize() + "." for tx in txs)
+    assert all(tx["asr_s"] is not None and tx["parse_s"] is not None for tx in txs)
+    assert any(tx["items"] for tx in txs)  # the parser read the transcripts
+    assert len(list((tmp_path / "asr").iterdir())) == len(txs)  # one cached transcript each
 
 
 def test_audio_route_rejects_traversal():

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-from readback.radio import SapiTTS, to_wav, vhf
+from readback.radio import SapiTTS, on_frequency
 from readback.sim import generate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -37,9 +37,8 @@ def main() -> int:
             for ev in scen["events"]:
                 if ev["type"] != "tx":
                     continue
-                speech = tts.speak(ev["text"], ev["role"], rate=2 if ev["role"] == "pilot" else 1)
                 path = audio_dir / f"{ev['id']}.wav"
-                path.write_bytes(to_wav(vhf(speech, rng, snr_db=float(rng.uniform(10, 20)))))
+                path.write_bytes(on_frequency(tts, ev["text"], ev["role"], rng))
                 ev["audio"] = path.relative_to(args.out).as_posix()
         args.out.mkdir(parents=True, exist_ok=True)
         dest = args.out / f"{scen['name']}.json"

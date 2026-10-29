@@ -2,6 +2,7 @@
 
     uv run python scripts/eval_gold.py                  # rules + tagger
     uv run python scripts/eval_gold.py --spark          # also Muse Spark (needs the API key)
+    uv run python scripts/eval_gold.py --glimmer        # also fine-tuned Muse Glimmer (Modal)
 
 Test sets: the UWB-ATCC gold set (Prague, dev and held-out halves), the retired ATCO2 set 1
 and the blind ATCO2 set 2 (`readback.tagger.gold`). Every parser's output goes through the
@@ -38,6 +39,8 @@ SETS = {
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--spark", action="store_true", help="also evaluate Muse Spark")
+    ap.add_argument("--glimmer", action="store_true", help="also evaluate fine-tuned Glimmer")
+    ap.add_argument("--adapter", default="adapters/clearance", help="Glimmer adapter to use")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel Muse Spark calls")
     ap.add_argument("--out", type=Path, default=ROOT / "results" / "parser-eval.md")
     args = ap.parse_args()
@@ -70,6 +73,16 @@ def main() -> int:
         chat = MuseChat()
         spark = SparkParser(chat, ROOT / "results" / "raw" / "llm-cache")
         parsers[chat.model] = lambda g: spark(g.text)
+
+    if args.glimmer:
+        from readback.glimmer import GlimmerParser
+
+        glimmer = GlimmerParser(ROOT / "results" / "raw" / "llm-cache", args.adapter)
+        every = [g for examples in sets.values() for g in examples]
+        texts = [g.text for g in every]
+        parsed = dict(zip(texts, glimmer.many(texts), strict=True))
+        print(f"Glimmer: {len(parsed)} transmissions, {glimmer.invalid} answers not valid JSON")
+        parsers["Muse Glimmer 30B, fine-tuned"] = lambda g: parsed[g.text]
 
     rows = []
     for name, parse in parsers.items():

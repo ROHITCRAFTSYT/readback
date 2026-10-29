@@ -49,6 +49,7 @@ def main() -> int:
         default="rules",
         help="both = rules + spark; all = rules + tagger + spark",
     )
+    ap.add_argument("--glimmer", action="store_true", help="also the fine-tuned Muse Glimmer")
     ap.add_argument("--limit", type=int, default=0, help="evaluate a random subset of pairs")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel Muse Spark calls")
     ap.add_argument("--seed", type=int, default=7)
@@ -92,14 +93,22 @@ def main() -> int:
     if args.parser in ("spark", "both", "all"):
         chat = MuseChat()
         parsers[chat.model] = (SparkParser(chat, ROOT / "results" / "raw" / "llm-cache"), 0)
+    if args.glimmer:
+        from readback.glimmer import GlimmerParser
+
+        glimmer = GlimmerParser(ROOT / "results" / "raw" / "llm-cache")
+        parsers["Muse Glimmer 30B, fine-tuned"] = (glimmer, 0)
 
     rows = []
     for name, (parse, workers) in parsers.items():
         texts = {p.instruction.text for p in pairs} | {p.readback.text for p in pairs}
         texts |= {text for _, text, _ in planted}
         texts = sorted(texts)
-        with ThreadPoolExecutor(max_workers=workers or args.concurrency) as pool:
-            parsed = dict(zip(texts, pool.map(parse, texts), strict=True))
+        if hasattr(parse, "many"):  # one batched call to a deployed model
+            parsed = dict(zip(texts, parse.many(texts), strict=True))
+        else:
+            with ThreadPoolExecutor(max_workers=workers or args.concurrency) as pool:
+                parsed = dict(zip(texts, pool.map(parse, texts), strict=True))
 
         real_flags, finding_types, review = 0, Counter(), []
         for p in pairs:

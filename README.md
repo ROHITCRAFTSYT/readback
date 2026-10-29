@@ -26,7 +26,7 @@ flowchart LR
 - **Understanding clearances.** Each turn becomes a structured clearance: callsign, instruction, altitude, heading, speed, frequency, runway, squawk.
 - **Two checks.** The readback against the clearance, and the aircraft's ADS-B track against the clearance (for example, cleared to FL100 but still descending through it).
 - **Explaining what happened.** For any alert, a Muse Spark agent pulls the transmissions, ADS-B track and other alerts it needs through tool calls and drafts a structured occurrence report.
-- **On-premises parsing.** Air navigation providers are wary of sending radio content to a cloud service. Readback's own tagger parses clearances on a CPU, with no network; `scripts/export_sft.py` also writes fine-tuning data for Muse Glimmer (open weights).
+- **On-premises parsing.** Air navigation providers are wary of sending radio content to a cloud service. Readback's own tagger parses clearances on a CPU, with no network. For a unit with a GPU there is also **Muse Glimmer 30B fine-tuned as Readback's parser** (open weights, a 0.1B-parameter LoRA adapter). It is the most accurate parser on the blind real-radio test, and it can run on the unit's own hardware ([below](#fine-tuned-muse-glimmer)).
 
 ## Status
 
@@ -39,6 +39,7 @@ flowchart LR
 | Oct 27 | A blind real-radio test for the tagger on ATCO2 (seven airports). Set 1 showed the tagger had overfit to Prague; generator v3 widened the phraseology, and a fresh set 2 now measures it. |
 | Oct 28 | First live Meta API runs. The Voice Transcribe go/no-go on 300 real-radio transcriptions came back CAUTION: digits pass, callsigns don't. Muse Spark was scored as a parser. Voice Transcribe and Spark now run live in the radar UI. Heard callsigns are matched to ADS-B, and the recognizer's stutters are dropped. On transcribed radio audio, the monitor catches all 68 planted problems. |
 | Oct 29 | Recordings: drop any audio file in the browser, and it is cut into transmissions at the silences, transcribed and checked. On a real Prague recording it catches a squawk read back as 1402 instead of 1404. Occurrence-report agent (Muse Spark with tool calls). Speaker roles from what is said ("ready for", "request") and from who was just addressed; a misheard callsign recovered from the flight number. Spark and the tagger scored on the blind set. Docker image, built and smoke-tested in CI. |
+| Oct 29 | Muse Glimmer 30B fine-tuned as the clearance parser: QLoRA on one H100 (Modal), 20,000 synthetic transmissions, 49 minutes. On the blind seven-airport set it scores 86.3% exact and 92.1% item F1, the best of the four parsers, and it flags fewer real pairs than Spark. |
 | Oct 29 | Review console for quality and safety teams. Recordings up to 4 hours are checked as background jobs with progress, and a transmission Voice Transcribe fails on is skipped instead of failing the shift. Everything is kept in SQLite: recordings, reviewer verdicts and notes, and drafted reports, so a restart loses nothing. Alert register as CSV, field precision from the verdicts, an optional access token, a retention period, and a configurable live airspace. |
 
 Everything in this repository was written during the hackathon.
@@ -65,6 +66,7 @@ docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
 |---|---|---|
 | `MODEL_API_KEY` | (none) | Meta Model API key. Without it, scenarios replay from the script with the tagger or rules; Voice Transcribe, Spark, recordings and reports are off. |
 | `READBACK_PARSER` | `tagger` | `rules` to use the rule-based parser in the monitor. |
+| `READBACK_GLIMMER` | (none) | Offer the fine-tuned Glimmer parser: `1` for the adapter trained here, or another adapter's path in the volume. Needs the deployed Modal app and `uv sync --group modal`. |
 | `READBACK_HOST` | `127.0.0.1` (`0.0.0.0` in Docker) | Address the server listens on. |
 | `READBACK_PORT` | `8000` | Port. |
 | `READBACK_DATA` | `./var` (`/data` in Docker) | Where recordings, verdicts and reports are kept (`readback.db` plus `audio/`). Back up this folder. |
@@ -104,11 +106,16 @@ Keyword biasing is what makes Voice Transcribe usable on ATC radio. Giving it th
 
 Each transmission is parsed into a structured clearance (callsign plus items such as `flight_level 100`, `heading 240 left`, `frequency 119.605`, `cleared_to_land 27l`), and the pilot's readback is compared with the controller's instruction. A wrong value or callsign is an error. An omitted item is a warning, because pilots legitimately shorten readbacks.
 
-There are three parsers: a fast rule-based one for standard ICAO phraseology (`src/readback/rules.py`), Readback's own trained tagger ([below](#a-parser-that-trains-itself)), and Muse Spark with a strict JSON schema (`src/readback/llm.py`).
+There are four parsers:
+- a fast rule-based one for standard ICAO phraseology (`src/readback/rules.py`)
+- Readback's own trained tagger ([below](#a-parser-that-trains-itself))
+- Muse Spark with a strict JSON schema (`src/readback/llm.py`)
+- Muse Glimmer 30B fine-tuned for this task ([below](#fine-tuned-muse-glimmer), `src/readback/glimmer.py`)
 
 ```bash
 uv run python scripts/eval_readback.py                  # rule-based parser
 uv run python scripts/eval_readback.py --parser both    # also Muse Spark (needs the API key)
+uv run python scripts/eval_readback.py --parser all --glimmer   # all four
 ```
 
 The evaluation pairs each controller instruction in UWB-ATCC with the pilot's reply, then plants one readback error per pair by changing a digit the pilot echoed (flight level, heading, squawk, frequency, runway) or a character of the callsign. Those are errors by construction, so recall is exact. Results: [`results/readback-eval.md`](results/readback-eval.md).
@@ -118,6 +125,7 @@ The evaluation pairs each controller instruction in UWB-ATCC with the pilot's re
 | Rule-based | 441 | 2.0% | 311 | 98.4% | 98.1% |
 | Tagger (round 248) | 441 | 9.3% | 311 | 98.4% | 94.4% |
 | Muse Spark | 441 | 16.8% | 311 | **99.4%** | 89.8% |
+| Muse Glimmer, fine-tuned | 441 | 10.0% | 311 | 97.7% | 92.7% |
 
 These pairs are from Prague, the phraseology the rules were written for, and they were mined with the rule-based callsign matcher, which flatters the rules here. On radio the rules weren't written for, they fall apart. On hand-labeled transmissions ([`results/parser-eval.md`](results/parser-eval.md), reference transcripts):
 
@@ -126,11 +134,13 @@ These pairs are from Prague, the phraseology the rules were written for, and the
 | Prague (UWB-ATCC), held-out half (138) | rule-based | 67.4% | 87.4% | 76.8% |
 | | tagger | **90.6%** | **97.2%** | 94.2% |
 | | Muse Spark | 87.7% | 95.7% | 94.2% |
+| | Muse Glimmer, fine-tuned | **92.0%** | 95.1% | **97.1%** |
 | **ATCO2 set 2, blind**, seven airports (263) | rule-based | 34.6% | 86.6% | 35.7% |
-| | tagger | 80.2% | **91.7%** | 86.3% |
-| | Muse Spark | **85.9%** | 91.2% | **95.1%** |
+| | tagger | 80.2% | 91.7% | 86.3% |
+| | Muse Spark | 85.2% | 90.5% | **95.1%** |
+| | Muse Glimmer, fine-tuned | **86.3%** | **92.1%** | 92.8% |
 
-*Exact* means the callsign and every item are right. Spark is best on callsigns it has never seen. The tagger is as good on clearance items, runs offline on a CPU in milliseconds, and raises fewer false alarms. The UI lets you pick either.
+*Exact* means the callsign and every item are right. Spark is best on callsigns it has never seen. The fine-tuned Glimmer is best overall on the blind set: most exact clearances and the best item F1, with fewer false alarms on real pairs than Spark. The tagger is close on clearance items, runs offline on a CPU in milliseconds, and raises fewer false alarms still. The UI lets you pick any of them. Spark's blind score was 85.9% in an earlier run; its answers vary slightly from run to run.
 
 Several of the flagged real pairs look like genuine readback errors in the recordings: for example, runway 31 read back as 13, and squawk 1404 read back as 1402.
 
@@ -229,7 +239,7 @@ Every alert has a **Draft occurrence report** button. A Muse Spark agent (`readb
 |---|---|---|---|
 | Input | Live frequency with ADS-B, recordings, simulated traffic | Recorded operations audio | Mostly audio files or batches (Whisper plus an LLM, or a knowledge graph) |
 | Checks | Readback values, callsign confusion, omissions, unanswered calls, **and the aircraft's ADS-B track against the clearance** | Readback errors | Readback errors |
-| Published accuracy | Rules: 98.4% recall at ~98% precision on 311 planted errors. Tagger: 91.7% item F1 on a blind seven-airport set | 81% of readback errors detected at an 11% false-alarm rate, on real operations audio | Mostly none; one reports 66-78% fact precision |
+| Published accuracy | Rules: 98.4% recall at ~98% precision on 311 planted errors. Fine-tuned Glimmer: 86.3% exact clearances, 92.1% item F1 on a blind seven-airport set | 81% of readback errors detected at an 11% false-alarm rate, on real operations audio | Mostly none; one reports 66-78% fact precision |
 | After an alert | Agent-drafted occurrence report with its evidence | Not in scope | Not in scope |
 | Runs as | One command or a Docker image; the parser works offline on a CPU | Research prototype | Scripts or notebooks |
 
@@ -263,7 +273,27 @@ uv run readback-ui                                  # then open http://127.0.0.1
 
 `autostart.py install` adds a Startup entry and an hourly Task Scheduler check. Both start a guardian that runs `scripts/supervise.py` and restarts it if it dies. The supervisor trains in one-hour stretches, runs a fresh date-seeded check once a day, and pushes the progress files (`training/`, [`TRAINING.md`](TRAINING.md), and at milestones `models/tagger.pt`). `autostart.py remove` undoes it. Once `models/tagger.pt` exists, the web UI's monitor uses the tagger (set `READBACK_PARSER=rules` to switch back), and `scripts/eval_readback.py --parser tagger` runs it on the real readback pairs.
 
-`scripts/export_sft.py` writes the same curriculum as chat fine-tuning data (transcript → clearance JSON), for fine-tuning Muse Glimmer to do this on-premises.
+## Fine-tuned Muse Glimmer
+
+Muse Glimmer 30B is Meta's open-weights model (Apache-2.0). Fine-tuned on the tagger's curriculum, it becomes a clearance parser that is as accurate as Muse Spark or better, and it can run on a unit's own GPU, so transcripts need not leave the building.
+
+- **Data.** `scripts/export_sft.py` writes the synthetic curriculum as chat examples: a transmission in canonical form, then the clearance as JSON. Levels 1-4 are mixed 1:2:4:1, so most examples carry real-radio noise. No real transmission is used for training.
+- **Training** (`scripts/finetune_glimmer_modal.py`, on [Modal](https://modal.com)):
+  - QLoRA: the base model in 4-bit nf4, with a rank-16 LoRA on the language model's attention and MLP projections. That is 105M trainable parameters (0.35%); the vision tower is untouched.
+  - One H100, 1,250 steps of 16 (one epoch of 20,000 examples), 49 minutes. Loss fell from 0.27 to 0.003.
+  - The answer turn is opened on Glimmer's user channel (`<|start|>assistant to=user<|message|>`) in training and at inference, so the model answers at once instead of reasoning first.
+- **Inference.** The deployed app loads the base model and the adapter on one GPU and parses transmissions in batches. `src/readback/glimmer.py` is the client. It caches answers like the Spark parser does, and it drops any item kind the model invents (the answer isn't held to a schema the way Spark's is). The evaluations send only transcripts, and the scoring and hand labels stay on this machine.
+
+```bash
+uv sync --group modal
+uv run python scripts/export_sft.py --n 20000
+uv run modal run scripts/finetune_glimmer_modal.py::download            # 60 GB of weights, once
+uv run modal deploy scripts/finetune_glimmer_modal.py
+uv run modal run scripts/finetune_glimmer_modal.py::train --steps 1250 --spawn
+uv run python scripts/eval_gold.py --spark --glimmer
+```
+
+Results are in the tables [above](#readback-error-detection). It is weaker on the retired ATCO2 set 1 (85.8% item F1, against the tagger's 95.4%), so it is not better everywhere. The fine-tune never saw real radio, and one epoch of one curriculum is a first run, not a tuned one.
 
 ## Tests
 

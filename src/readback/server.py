@@ -170,11 +170,39 @@ def muse_ready() -> bool:
     return bool(os.environ.get("MODEL_API_KEY"))
 
 
+def glimmer_ready() -> bool:
+    """The fine-tuned Glimmer parser is offered when READBACK_GLIMMER names its adapter
+    (deployed with scripts/finetune_glimmer_modal.py) and the Modal client is installed."""
+    if not os.environ.get("READBACK_GLIMMER"):
+        return False
+    try:
+        import modal  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _check_parser(parser: str) -> None:
+    if parser == "spark" and not muse_ready():
+        raise HTTPException(400, "Muse Spark needs MODEL_API_KEY in .env")
+    if parser == "glimmer" and not glimmer_ready():
+        raise HTTPException(400, "the Glimmer parser needs READBACK_GLIMMER and the Modal client")
+
+
 @functools.cache
 def _spark():
     from readback.llm import MuseChat, SparkParser
 
     return SparkParser(MuseChat(), ROOT / "results" / "raw" / "llm-cache")
+
+
+@functools.cache
+def _glimmer():
+    from readback.glimmer import GlimmerParser
+
+    adapter = os.environ.get("READBACK_GLIMMER", "1")
+    adapter = "adapters/clearance" if adapter == "1" else adapter
+    return GlimmerParser(ROOT / "results" / "raw" / "llm-cache", adapter)
 
 
 SESSIONS: dict[str, Log] = {}  # what each replay or analysis saw, for the report agent
@@ -215,7 +243,11 @@ def _tts():
 
 def _parser(name: str):
     """Every parser's output goes through the same tidy, as in the evaluations."""
-    base = {"spark": lambda text: _spark()(text), "rules": _rules_parse}.get(name, _parse)
+    base = {
+        "spark": lambda text: _spark()(text),
+        "glimmer": lambda text: _glimmer()(text),
+        "rules": _rules_parse,
+    }.get(name, _parse)
     return lambda text: tidy(base(text))
 
 
@@ -296,6 +328,7 @@ def scenario_info(seed: int) -> dict:
         "has_audio": any(e.get("audio") for e in scen["events"] if e["type"] == "tx"),
         "parser": PARSER_NAME,
         "muse": muse_ready(),
+        "glimmer": glimmer_ready(),
     }
 
 
@@ -386,10 +419,11 @@ def replay_stream(
     seed: int,
     speed: float = Query(4.0, gt=0, le=1000),
     listen: bool = False,
-    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|rules)$"),
+    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|glimmer|rules)$"),
 ) -> StreamingResponse:
-    if (listen or parser == "spark") and not muse_ready():
+    if listen and not muse_ready():
         raise HTTPException(400, "Muse needs MODEL_API_KEY in .env")
+    _check_parser(parser)
     return StreamingResponse(
         _stream(seed, speed, listen, parser),
         media_type="text/event-stream",
@@ -509,10 +543,11 @@ async def submit_recording(
     request: Request,
     name: str = Query("", max_length=200),
     callsigns: str = Query("", max_length=2000),
-    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|rules)$"),
+    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|glimmer|rules)$"),
 ) -> dict:
     """Queue a recording (the request body: WAV, or any format ffmpeg reads) for checking.
     Poll GET /api/recordings/{id} for progress and results."""
+    _check_parser(parser)
     data = await _upload(request)
     aid = store().create(name.strip() or time.strftime("Recording %Y-%m-%d %H:%M"), parser,
                          callsigns)  # fmt: skip
@@ -622,10 +657,11 @@ def all_alerts_csv() -> Response:
 async def analyze_recording(
     request: Request,
     callsigns: str = "",
-    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|rules)$"),
+    parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|glimmer|rules)$"),
 ) -> dict:
     """Check a recording and wait for the result (scripts and short files). It is stored like
     any other; long recordings are better sent to POST /api/recordings."""
+    _check_parser(parser)
     data = await _upload(request)
     aid = store().create(time.strftime("Recording %Y-%m-%d %H:%M"), parser, callsigns)
     await asyncio.to_thread(_run_job, aid, data, callsigns.split(","), parser)
@@ -647,6 +683,7 @@ def healthz() -> dict:
         "ok": True,
         "parser": PARSER_NAME,
         "muse": muse_ready(),
+        "glimmer": glimmer_ready(),
         "auth": bool(os.environ.get("READBACK_TOKEN")),
         "live": live_center()[0],
     }

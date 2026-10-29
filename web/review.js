@@ -1,7 +1,7 @@
 // Recording review: upload recordings, follow the background checks, and give every alert a
 // verdict. Verdicts are stored on the server and make up the unit's alert register (CSV).
 const $ = (id) => document.getElementById(id);
-const PARSERS = { tagger: "tagger", spark: "Muse Spark", rules: "rules" };
+const PARSERS = { tagger: "tagger", spark: "Muse Spark", glimmer: "Muse Glimmer", rules: "rules" };
 const VERDICT_LABEL = { open: "to review", confirmed: "confirmed", false_alarm: "false alarm" };
 let items = [];
 let selected = null;
@@ -344,6 +344,7 @@ $("upload").addEventListener("submit", async (e) => {
 (async () => {
   const health = await fetch("/healthz").then((r) => r.json()).catch(() => ({}));
   if (health.parser === "rules") $("up-parser").value = "rules";
+  if (!health.glimmer) $("up-parser").querySelector('[value="glimmer"]').remove();
   if (!health.muse) {
     $("up-msg").className = "hint err";
     $("up-msg").textContent = "Checking recordings needs MODEL_API_KEY on the server (Voice Transcribe).";

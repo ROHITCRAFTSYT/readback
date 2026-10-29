@@ -22,7 +22,7 @@ let stats = { tx: 0, err: 0, track: 0, warn: 0 };
 let parserName = "tagger";
 let sessionId = null; // the server's record of this replay or recording, for reports
 let museOK = false;
-const PARSERS = { tagger: "tagger", spark: "Muse Spark", rules: "rules" };
+const PARSERS = { tagger: "tagger", spark: "Muse Spark", glimmer: "Muse Glimmer", rules: "rules" };
 
 // ---------- callsign matching (mirrors readback.compare.same_callsign) ----------
 function tail(cs) {
@@ -425,6 +425,10 @@ async function play() {
     listen = false;
     if (parserName === "spark") parserName = info.parser;
     $("hear").value = "script";
+    $("parser").value = parserName;
+  }
+  if (parserName === "glimmer" && !info.glimmer) {
+    parserName = info.parser; // no fine-tuned Glimmer deployed for this server
     $("parser").value = parserName;
   }
   if (listen) $("sound").checked = true;

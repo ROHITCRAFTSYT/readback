@@ -207,3 +207,25 @@ def test_upload_limits(client, monkeypatch):
     assert client.post("/api/recordings", content=b"").status_code == 400
     monkeypatch.delenv("MODEL_API_KEY")
     assert client.post("/api/recordings", content=b"x").status_code == 400
+
+
+def test_glimmer_parser_only_when_deployed(client, monkeypatch):
+    monkeypatch.delenv("READBACK_GLIMMER", raising=False)
+    assert client.get("/healthz").json()["glimmer"] is False
+    r = client.post("/api/recordings?parser=glimmer", content=_wav())
+    assert r.status_code == 400 and "READBACK_GLIMMER" in r.json()["detail"]
+
+    from readback.glimmer import GlimmerParser
+
+    class Fake:
+        def remote(self, texts):
+            return ['{"callsign": "ifly 9 6 1", "items": [{"kind": "flight_level", '
+                    '"value": "90", "qualifier": "descend"}]}' if "9 0" in t else
+                    '{"callsign": "ifly 9 6 1", "items": [{"kind": "flight_level", '
+                    '"value": "100", "qualifier": "descend"}]}' for t in texts]  # fmt: skip
+
+    monkeypatch.setenv("READBACK_GLIMMER", "1")
+    monkeypatch.setattr(server, "glimmer_ready", lambda: True)
+    monkeypatch.setattr(server, "_glimmer", lambda: GlimmerParser(remote=Fake()))
+    rec = _wait(client, client.post("/api/recordings?parser=glimmer", content=_wav()).json()["id"])
+    assert rec["status"] == "done" and rec["parser"] == "glimmer" and rec["summary"]["alerts"] == 1

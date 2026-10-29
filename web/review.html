@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=4">
-  <link rel="stylesheet" href="/static/review.css?v=4">
+  <link rel="stylesheet" href="/static/style.css?v=5">
+  <link rel="stylesheet" href="/static/review.css?v=5">
 </head>
 <body class="review-page">
   <nav class="nav" id="nav" aria-label="Main"></nav>
@@ -20,8 +20,13 @@
         <p>Recorded frequencies for quality and safety teams: upload, listen, give each alert a verdict.</p>
       </div>
       <div class="head-actions">
+        <label class="field">Position
+          <select id="pos" title="Show one unit or frequency: the totals, list and register follow">
+            <option value="">All positions</option>
+          </select>
+        </label>
         <label class="field">Reviewer <input id="reviewer" type="text" class="wide-input" placeholder="your name or ID" maxlength="200"></label>
-        <a class="btn" href="/api/alerts.csv" download>Export alert register (CSV)</a>
+        <a id="register" class="btn" href="/api/alerts.csv" download>Export alert register (CSV)</a>
       </div>
     </header>
 
@@ -39,7 +44,13 @@
         <form id="upload" class="upload">
           <h2>Check a recording</h2>
           <label>Audio file <input id="up-file" type="file" accept="audio/*,video/*" required></label>
-          <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. TWR 118.1 · 29 Oct 06:00-10:00"></label>
+          <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. Morning shift 29 Oct 06:00-10:00"></label>
+          <div class="pair">
+            <label>Unit <span class="opt">optional</span> <input id="up-unit" type="text" maxlength="100" placeholder="LKPR TWR" list="units"></label>
+            <label>Frequency <span class="opt">optional</span> <input id="up-freq" type="text" maxlength="40" placeholder="118.100" inputmode="decimal" list="freqs"></label>
+          </div>
+          <datalist id="units"></datalist>
+          <datalist id="freqs"></datalist>
           <label>Callsigns on frequency <span class="opt">optional</span> <input id="up-cs" type="text" maxlength="2000" placeholder="SWR123, DLH4CK"></label>
           <label>Parser
             <select id="up-parser">
@@ -80,7 +91,7 @@
     <div id="report-body" class="report-body"></div>
   </dialog>
 
-  <script src="/static/common.js?v=4"></script>
-  <script src="/static/review.js?v=4"></script>
+  <script src="/static/common.js?v=5"></script>
+  <script src="/static/review.js?v=5"></script>
 </body>
 </html>

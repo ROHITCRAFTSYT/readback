@@ -29,12 +29,58 @@ $("reviewer").addEventListener("change", () => {
   try { localStorage.setItem("readback-reviewer", $("reviewer").value.trim()); } catch {}
 });
 
+// ---------- position filter: one unit, or one unit's frequency ----------
+let position = "";
+try { position = localStorage.getItem("readback-position") || ""; } catch {}
+const posLabel = (p) => [p.unit || "No unit", p.frequency].filter(Boolean).join(" · ");
+const posQuery = () => {
+  if (!position) return "";
+  const p = JSON.parse(position);
+  const q = new URLSearchParams({ unit: p.unit });
+  if (p.frequency != null) q.set("frequency", p.frequency);
+  return q.toString();
+};
+
+function renderPositions(positions) {
+  const sel = $("pos");
+  const opts = [["", "All positions"]];
+  const units = [...new Set(positions.map((p) => p.unit))];
+  for (const unit of units) {
+    const own = positions.filter((p) => p.unit === unit);
+    const n = own.reduce((t, p) => t + p.recordings, 0);
+    if (own.length > 1) opts.push([JSON.stringify({ unit }), `${unit || "No unit"}, all frequencies (${n})`]);
+    for (const p of own) {
+      opts.push([JSON.stringify({ unit, frequency: p.frequency }), `${posLabel(p)} (${p.recordings})`]);
+    }
+  }
+  if (position && !opts.some(([v]) => v === position)) position = "";
+  sel.replaceChildren(...opts.map(([v, label]) => {
+    const o = el("option", "", label);
+    o.value = v;
+    return o;
+  }));
+  sel.value = position;
+  sel.hidden = false;
+  $("units").replaceChildren(...units.filter(Boolean).map((u) => Object.assign(el("option"), { value: u })));
+  const freqs = [...new Set(positions.map((p) => p.frequency).filter(Boolean))];
+  $("freqs").replaceChildren(...freqs.map((f) => Object.assign(el("option"), { value: f })));
+}
+$("pos").addEventListener("change", () => {
+  position = $("pos").value;
+  try { localStorage.setItem("readback-position", position); } catch {}
+  loadList();
+});
+
 // ---------- list ----------
 async function loadList() {
-  const res = await api("/api/recordings");
+  const q = posQuery();
+  const res = await api(`/api/recordings${q ? `?${q}` : ""}`);
   if (!res.ok) return;
   const data = await res.json();
+  if (q !== posQuery()) return; // the filter changed while this was loading
   items = data.items;
+  renderPositions(data.positions);
+  $("register").href = `/api/alerts.csv${q ? `?${q}` : ""}`;
   const k = data.stats;
   $("k-rec").textContent = k.recordings;
   $("k-hours").textContent = k.hours;
@@ -56,11 +102,15 @@ async function loadList() {
 function renderList() {
   const list = $("list");
   list.replaceChildren();
-  if (!items.length) { list.append(el("li", "empty", "No recordings yet.")); return; }
+  if (!items.length) {
+    list.append(el("li", "empty", position ? "No recordings for this position." : "No recordings yet."));
+    return;
+  }
   for (const r of items) {
     const li = el("li", `rec${r.id === selected ? " selected" : ""}`);
     li.append(el("div", "name", r.name));
     const sub = el("div", "sub");
+    if (r.unit || r.frequency) sub.append(el("span", "pos", posLabel(r)));
     sub.append(el("span", "", fmtDate(r.created)));
     if (r.status === "done") {
       const s = r.summary;
@@ -125,6 +175,7 @@ function renderDetail() {
   const title = el("div");
   title.append(el("h2", "", rec.name));
   const bits = [fmtDate(rec.created), `parser: ${PARSERS[rec.parser] || rec.parser}`];
+  if (rec.unit || rec.frequency) bits.unshift(posLabel(rec));
   if (rec.callsigns) bits.push(`callsigns: ${rec.callsigns}`);
   if (rec.summary) {
     bits.push(fmtTime(rec.summary.duration), `${rec.summary.transmissions} transmissions`);
@@ -138,6 +189,11 @@ function renderDetail() {
     csv.download = "";
     actions.append(csv);
   }
+  const edit = el("button", "tab", "Edit");
+  edit.type = "button";
+  edit.title = "Rename, or file under a unit and frequency";
+  edit.addEventListener("click", () => editForm(head));
+  actions.append(edit);
   const del = el("button", "tab danger", "Delete");
   del.type = "button";
   del.addEventListener("click", deleteRecording);
@@ -187,6 +243,42 @@ function renderDetail() {
   cols.append(alertsCol, txCol);
   box.append(cols);
   focusIdx = -1;
+}
+
+function editForm(head) {
+  if (head.nextElementSibling?.classList.contains("edit-form")) return head.nextElementSibling.querySelector("input").focus();
+  const form = el("form", "edit-form");
+  const field = (label, key, max, ph) => {
+    const l = el("label", "", label);
+    const i = el("input");
+    Object.assign(i, { name: key, value: detail[key] || "", maxLength: max, placeholder: ph });
+    l.append(i);
+    return l;
+  };
+  const save = el("button", "primary", "Save");
+  const cancel = el("button", "tab", "Cancel");
+  cancel.type = "button";
+  cancel.addEventListener("click", () => form.remove());
+  const msg = el("span", "hint");
+  form.append(field("Name", "name", 200, ""), field("Unit", "unit", 100, "LKPR TWR"),
+              field("Frequency", "frequency", 40, "118.100"), save, cancel, msg);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(form));
+    if (!body.name.trim()) delete body.name;
+    save.disabled = true;
+    const res = await api(`/api/recordings/${detail.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    save.disabled = false;
+    if (!res.ok) { msg.className = "hint err"; msg.textContent = "Could not save."; return; }
+    const rec = await res.json();
+    Object.assign(detail, { name: rec.name, unit: rec.unit, frequency: rec.frequency });
+    renderDetail();
+    loadList();
+  });
+  head.after(form);
+  form.querySelector("input").focus();
 }
 
 function seek(t) {
@@ -365,12 +457,22 @@ $("upload").addEventListener("submit", async (e) => {
       name: $("up-name").value.trim() || file.name,
       callsigns: $("up-cs").value,
       parser: $("up-parser").value,
+      unit: $("up-unit").value.trim(),
+      frequency: $("up-freq").value.trim(),
     });
     const res = await api(`/api/recordings?${q}`, { method: "POST", body: file });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || res.statusText);
     msg.textContent = "Uploaded. Checking in the background; you can leave this page.";
+    const keep = [$("up-unit").value, $("up-freq").value]; // the next file is likely the same position
     $("upload").reset();
+    [$("up-unit").value, $("up-freq").value] = keep;
+    if (position) { // show the new recording even if it is another position's
+      const p = JSON.parse(position);
+      if (p.unit !== keep[0].trim() || (p.frequency != null && p.frequency !== keep[1].trim())) {
+        position = $("pos").value = "";
+      }
+    }
     await loadList();
     select(data.id);
   } catch (err) {

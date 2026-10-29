@@ -3,6 +3,9 @@ alert, and the drafted occurrence reports, in one SQLite file next to the record
 
 Reviewer verdicts close the loop: the share of alerts confirmed is the precision Readback
 actually achieves on that unit's radio, which no offline benchmark can tell them.
+
+Each recording names its unit (e.g. "LKPR TWR") and frequency (e.g. "118.100"), so one store
+serves several positions, and listings, totals and the alert register can be cut by either.
 """
 
 from __future__ import annotations
@@ -27,6 +30,8 @@ CREATE TABLE IF NOT EXISTS analyses (
     error TEXT,
     parser TEXT NOT NULL,
     callsigns TEXT NOT NULL DEFAULT '',
+    unit TEXT NOT NULL DEFAULT '',
+    frequency TEXT NOT NULL DEFAULT '',
     duration REAL,
     summary TEXT,
     log TEXT
@@ -60,18 +65,25 @@ class Store:
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.executescript(SCHEMA)
+        have = {r["name"] for r in self._db.execute("PRAGMA table_info(analyses)")}
+        for col in ("unit", "frequency"):  # stores made before units existed
+            if col not in have:
+                self._db.execute(f"ALTER TABLE analyses ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+        self._db.execute("CREATE INDEX IF NOT EXISTS analyses_unit ON analyses (unit, frequency)")
 
     def _run(self, sql: str, args: tuple = ()) -> list[sqlite3.Row]:
         with self._lock, self._db:
             return self._db.execute(sql, args).fetchall()
 
     # ---------- analyses ----------
-    def create(self, name: str, parser: str, callsigns: str = "") -> str:
+    def create(
+        self, name: str, parser: str, callsigns: str = "", unit: str = "", frequency: str = ""
+    ) -> str:
         aid = uuid.uuid4().hex[:12]
         self._run(
-            "INSERT INTO analyses (id, name, created, status, parser, callsigns) "
-            "VALUES (?, ?, ?, 'queued', ?, ?)",
-            (aid, name, time.time(), parser, callsigns),
+            "INSERT INTO analyses (id, name, created, status, parser, callsigns, unit, frequency) "
+            "VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)",
+            (aid, name, time.time(), parser, callsigns, unit, frequency),
         )
         return aid
 
@@ -92,10 +104,33 @@ class Store:
         out["log"] = json.loads(rows[0]["log"]) if rows[0]["log"] else None
         return out
 
-    def list(self, limit: int = 500) -> list[dict]:
-        rows = self._run("SELECT * FROM analyses ORDER BY created DESC LIMIT ?", (limit,))
+    @staticmethod
+    def _where(unit: str | None, frequency: str | None, prefix: str = "") -> tuple[str, tuple]:
+        """SQL conditions for a unit and/or frequency filter (None: any)."""
+        conds, args = [], []
+        for col, value in (("unit", unit), ("frequency", frequency)):
+            if value is not None:
+                conds.append(f"{prefix}{col} = ?")
+                args.append(value)
+        return " AND ".join(conds) or "1", tuple(args)
+
+    def list(
+        self, limit: int = 500, unit: str | None = None, frequency: str | None = None
+    ) -> list[dict]:
+        where, args = self._where(unit, frequency)
+        rows = self._run(
+            f"SELECT * FROM analyses WHERE {where} ORDER BY created DESC LIMIT ?", (*args, limit)
+        )
         verdicts = self._verdict_counts()
         return [dict(self._row(r), verdicts=verdicts.get(r["id"], {})) for r in rows]
+
+    def positions(self) -> list[dict]:
+        """Every unit and frequency in the store, with how many recordings each has."""
+        rows = self._run(
+            "SELECT unit, frequency, COUNT(*) AS recordings FROM analyses "
+            "GROUP BY unit, frequency ORDER BY unit, frequency"
+        )
+        return [dict(r) for r in rows]
 
     @staticmethod
     def _row(row: sqlite3.Row) -> dict:
@@ -154,13 +189,20 @@ class Store:
             out.setdefault(r["analysis_id"], {})[r["verdict"]] = r["n"]
         return out
 
-    def stats(self) -> dict:
-        """Totals across all recordings, and the precision reviewers have measured."""
-        done = self._run("SELECT summary FROM analyses WHERE status = 'done'")
+    def stats(self, unit: str | None = None, frequency: str | None = None) -> dict:
+        """Totals across recordings (all, or one unit/frequency), and the precision reviewers
+        have measured on them."""
+        where, args = self._where(unit, frequency)
+        done = self._run(f"SELECT summary FROM analyses WHERE status = 'done' AND {where}", args)
         alerts = sum(json.loads(r["summary"])["alerts"] for r in done if r["summary"])
         seconds = sum(json.loads(r["summary"])["duration"] for r in done if r["summary"])
         counts = {v: 0 for v in VERDICTS}
-        for r in self._run("SELECT verdict, COUNT(*) AS n FROM reviews GROUP BY verdict"):
+        where, args = self._where(unit, frequency, "a.")
+        for r in self._run(
+            "SELECT verdict, COUNT(*) AS n FROM reviews r JOIN analyses a ON a.id = r.analysis_id "
+            f"WHERE {where} GROUP BY verdict",
+            args,
+        ):
             counts[r["verdict"]] = r["n"]
         judged = counts["confirmed"] + counts["false_alarm"]
         return {

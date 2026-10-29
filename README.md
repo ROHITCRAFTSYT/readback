@@ -202,25 +202,29 @@ Tested on a 43-second real recording from Prague (UWB-ATCC) in which a pilot rea
 
 `/review` is where a unit's quality or safety team works through recordings:
 
-- **Upload** a recording with a name and, optionally, the callsigns on frequency. It is checked in the background with a progress bar, so a four-hour shift doesn't hold up the browser. A restart marks unfinished jobs as failed instead of leaving them hanging.
+- **Upload** a recording with a name and, optionally, its unit, frequency and the callsigns on frequency. It is checked in the background with a progress bar, so a four-hour shift doesn't hold up the browser. A restart marks unfinished jobs as failed instead of leaving them hanging.
 - **Review** each alert next to the audio. "▶" plays from just before it, and the transmission being played is highlighted in the radio log. Give a verdict (*Confirm*, *False alarm*, or *Reopen*) and a note; the reviewer's name and the time are recorded.
 - **Report**: draft the occurrence report for any alert. The draft is kept with the recording.
 - **Keyboard**: J and K move between alerts, C confirms, F marks a false alarm, R reopens, P plays from the alert, N jumps to the note, and Space pauses. A reviewer can work through a shift without the mouse.
 - **Register**: every alert of every recording, with its verdict, note, reviewer and time, as CSV (`/api/alerts.csv`, or per recording). It opens cleanly in Excel, and transcript text can't run as a spreadsheet formula.
+- **Positions**: one store serves several units and frequencies. The *Position* filter cuts the list, the totals, field precision and the register to one unit or one frequency. *Edit* files an existing recording under a unit.
 - **Field precision**: confirmed alerts as a share of all judged alerts. This is the number offline benchmarks can't give, measured on the unit's own radio, accents and phraseology.
 
 All of it is kept in one SQLite file plus the audio under `READBACK_DATA`. Deleting a recording deletes its audio, verdicts and reports; `READBACK_RETENTION_DAYS` does the same automatically.
 
 | API | |
 |---|---|
-| `POST /api/recordings?name&callsigns&parser` | Queue a recording (the body is the audio file). Returns `{"id"}`. |
-| `GET /api/recordings` | All recordings with status, progress, summary and verdict counts, plus totals and field precision. |
+| `POST /api/recordings?name&unit&frequency&callsigns&parser` | Queue a recording (the body is the audio file). Returns `{"id"}`. |
+| `GET /api/recordings?unit&frequency` | Recordings (all, or one position's) with status, progress, summary and verdict counts, plus totals, field precision and every unit/frequency in the store. |
 | `GET /api/recordings/{id}` | Transmissions, alerts with their verdicts, and the audio URL. |
+| `PATCH /api/recordings/{id}` | `{"name", "unit", "frequency"}`: rename or re-file a recording. |
 | `PUT /api/recordings/{id}/alerts/{i}/review` | `{"verdict": "confirmed" \| "false_alarm" \| "open", "note", "reviewer"}` |
 | `POST /api/report/{id}/{i}` | Draft (or fetch the kept) occurrence report. |
-| `GET /api/alerts.csv`, `GET /api/recordings/{id}/alerts.csv` | The alert register. |
+| `GET /api/alerts.csv?unit&frequency`, `GET /api/recordings/{id}/alerts.csv` | The alert register, with unit and frequency columns. |
 | `DELETE /api/recordings/{id}` | Delete a recording and everything about it. |
 | `POST /api/analyze` | Check a short recording and wait for the result (scripts). |
+
+The full, tagged API reference (OpenAPI) is at `/docs` on a running server.
 
 ## Deploying for an ATC unit
 

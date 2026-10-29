@@ -59,7 +59,28 @@ load_dotenv(ROOT / ".env")
 MAX_UPLOAD = int(os.environ.get("READBACK_MAX_UPLOAD_MB", "500")) * 1024 * 1024
 log = logging.getLogger("readback")
 
-app = FastAPI(title="Readback")
+TAGS = [
+    {"name": "recordings", "description": "Upload recorded frequencies, follow the background "
+     "checks, and read the transmissions and alerts. Filter by unit and frequency."},
+    {"name": "review", "description": "Reviewer verdicts on alerts and the alert register (CSV)."},
+    {"name": "reports", "description": "Occurrence reports drafted by the Muse Spark agent."},
+    {"name": "monitor", "description": "Scenario replays (server-sent events) and live ADS-B."},
+    {"name": "training", "description": "The tagger's continuous training run."},
+    {"name": "system", "description": "Health and sign-in."},
+]  # fmt: skip
+app = FastAPI(
+    title="Readback",
+    version="1.0",
+    summary="Catches readback errors between controllers and pilots.",
+    description=(
+        "Decision support for ATC units: every recorded or live transmission is transcribed "
+        "(Muse Voice Transcribe), parsed into a clearance, and each pilot readback is checked "
+        "against the controller's instruction and against the aircraft's ADS-B track. "
+        "With `READBACK_TOKEN` set, every `/api` call needs `Authorization: Bearer <token>` "
+        "(or the cookie `POST /api/login` sets)."
+    ),
+    openapi_tags=TAGS,
+)
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 _STORE: Store | None = None
@@ -125,7 +146,7 @@ class Login(BaseModel):
     token: str = Field(max_length=500)
 
 
-@app.post("/api/login")
+@app.post("/api/login", tags=["system"])
 def login(body: Login, request: Request) -> JSONResponse:
     token = os.environ.get("READBACK_TOKEN", "")
     if token and not hmac.compare_digest(body.token.encode(), token.encode()):
@@ -139,7 +160,7 @@ def login(body: Login, request: Request) -> JSONResponse:
     return response
 
 
-@app.post("/api/logout")
+@app.post("/api/logout", tags=["system"])
 def logout() -> JSONResponse:
     response = JSONResponse({"ok": True})
     response.delete_cookie("readback_token")
@@ -307,12 +328,12 @@ def _page(name: str) -> FileResponse:
     return FileResponse(WEB / name, headers={"Cache-Control": "no-cache"})
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def index() -> FileResponse:
     return _page("index.html")
 
 
-@app.get("/audio/{path:path}")
+@app.get("/audio/{path:path}", include_in_schema=False)
 def audio(path: str) -> FileResponse:
     target = (SCENARIOS / path).resolve()
     if SCENARIOS.resolve() not in target.parents or target.suffix != ".wav" or not target.exists():
@@ -320,7 +341,7 @@ def audio(path: str) -> FileResponse:
     return FileResponse(target, media_type="audio/wav")
 
 
-@app.get("/api/scenario/{seed}")
+@app.get("/api/scenario/{seed}", tags=["monitor"])
 def scenario_info(seed: int) -> dict:
     scen = load_scenario(seed)
     last = max(e["t"] for e in scen["events"])
@@ -419,7 +440,7 @@ async def _stream(seed: int, speed: float, listen: bool, parser: str) -> AsyncIt
     yield _sse("end", {"labels": scen["labels"]})
 
 
-@app.get("/api/replay/{seed}")
+@app.get("/api/replay/{seed}", tags=["monitor"])
 def replay_stream(
     seed: int,
     speed: float = Query(4.0, gt=0, le=1000),
@@ -446,7 +467,7 @@ def _stored_log(aid: str) -> Log | None:
     return out
 
 
-@app.post("/api/report/{sid}/{index}")
+@app.post("/api/report/{sid}/{index}", tags=["reports"])
 def occurrence_report(sid: str, index: int) -> dict:
     """The occurrence-report agent's draft for one alert of a replay or a stored recording.
     Drafts are kept: a replay's while it is recent, a recording's with the recording."""
@@ -543,35 +564,52 @@ def _detail(aid: str) -> dict:
     return rec
 
 
-@app.post("/api/recordings", status_code=202)
+@app.post("/api/recordings", status_code=202, tags=["recordings"])
 async def submit_recording(
     request: Request,
     name: str = Query("", max_length=200),
     callsigns: str = Query("", max_length=2000),
     parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|glimmer|rules)$"),
+    unit: str = Query("", max_length=100, description='ATC unit or position, e.g. "LKPR TWR"'),
+    frequency: str = Query("", max_length=40, description='e.g. "118.100"'),
 ) -> dict:
     """Queue a recording (the request body: WAV, or any format ffmpeg reads) for checking.
     Poll GET /api/recordings/{id} for progress and results."""
     _check_parser(parser)
     data = await _upload(request)
     aid = store().create(name.strip() or time.strftime("Recording %Y-%m-%d %H:%M"), parser,
-                         callsigns)  # fmt: skip
+                         callsigns, unit.strip(), frequency.strip())  # fmt: skip
     JOBS.submit(_run_job, aid, data, callsigns.split(","), parser)
     return {"id": aid}
 
 
-@app.get("/api/recordings")
-def list_recordings(limit: int = Query(500, gt=0, le=5000)) -> dict:
+UNIT = Query(None, max_length=100, description="only this unit (empty: recordings with none)")
+FREQUENCY = Query(None, max_length=40, description="only this frequency")
+
+
+@app.get("/api/recordings", tags=["recordings"])
+def list_recordings(
+    limit: int = Query(500, gt=0, le=5000),
+    unit: str | None = UNIT,
+    frequency: str | None = FREQUENCY,
+) -> dict:
+    """Recordings, newest first, with totals and field precision for the same selection, and
+    every unit and frequency in the store (for filters)."""
     st = store()
-    return {"items": st.list(limit), "stats": st.stats(), "retention_days": retention_days()}
+    return {
+        "items": st.list(limit, unit, frequency),
+        "stats": st.stats(unit, frequency),
+        "positions": st.positions(),
+        "retention_days": retention_days(),
+    }
 
 
-@app.get("/api/recordings/{aid}")
+@app.get("/api/recordings/{aid}", tags=["recordings"])
 def recording(aid: str) -> dict:
     return _detail(aid)
 
 
-@app.get("/api/recordings/{aid}/audio")
+@app.get("/api/recordings/{aid}/audio", tags=["recordings"])
 def recording_audio(aid: str) -> FileResponse:
     path = store().audio / f"{aid}.wav"
     if not aid.isalnum() or not path.exists():
@@ -579,7 +617,24 @@ def recording_audio(aid: str) -> FileResponse:
     return FileResponse(path, media_type="audio/wav")
 
 
-@app.delete("/api/recordings/{aid}")
+class Labels(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=200)
+    unit: str | None = Field(None, max_length=100)
+    frequency: str | None = Field(None, max_length=40)
+
+
+@app.patch("/api/recordings/{aid}", tags=["recordings"])
+def label_recording(aid: str, body: Labels) -> dict:
+    """Rename a recording or file it under a unit and frequency (fields left out are kept)."""
+    if store().get(aid) is None:
+        raise HTTPException(404, "no such recording")
+    fields = {k: v.strip() for k, v in body.model_dump(exclude_none=True).items()}
+    if fields:
+        store().update(aid, **fields)
+    return _detail(aid)
+
+
+@app.delete("/api/recordings/{aid}", tags=["recordings"])
 def delete_recording(aid: str) -> dict:
     if store().get(aid) is None:
         raise HTTPException(404, "no such recording")
@@ -593,7 +648,7 @@ class Review(BaseModel):
     reviewer: str = Field("", max_length=200)
 
 
-@app.put("/api/recordings/{aid}/alerts/{index}/review")
+@app.put("/api/recordings/{aid}/alerts/{index}/review", tags=["review"])
 def review_alert(aid: str, index: int, body: Review) -> dict:
     rec = store().get(aid)
     if rec is None or rec["status"] != "done" or not 0 <= index < len(rec["log"]["alerts"]):
@@ -601,9 +656,9 @@ def review_alert(aid: str, index: int, body: Review) -> dict:
     return store().review(aid, index, body.verdict, body.note.strip(), body.reviewer.strip())
 
 
-CSV_FIELDS = ["recording", "recording_id", "uploaded", "alert", "time", "severity", "source",
-              "kind", "callsign", "message", "expected", "heard", "verdict", "note", "reviewer",
-              "reviewed"]  # fmt: skip
+CSV_FIELDS = ["unit", "frequency", "recording", "recording_id", "uploaded", "alert", "time",
+              "severity", "source", "kind", "callsign", "message", "expected", "heard", "verdict",
+              "note", "reviewer", "reviewed"]  # fmt: skip
 
 
 def _iso(t: float | None) -> str:
@@ -634,6 +689,7 @@ def _csv(recs: list[dict]) -> Response:
         for a in rec["alerts"]:
             r = a["review"]
             w.writerow({k: _cell(v) for k, v in {
+                "unit": rec["unit"], "frequency": rec["frequency"],
                 "recording": rec["name"], "recording_id": rec["id"],
                 "uploaded": _iso(rec["created"]), "alert": a["index"], "time": _clock(a["t"]),
                 "severity": a["severity"], "source": a["source"], "kind": a["kind"],
@@ -647,28 +703,33 @@ def _csv(recs: list[dict]) -> Response:
     )  # fmt: skip
 
 
-@app.get("/api/recordings/{aid}/alerts.csv")
+@app.get("/api/recordings/{aid}/alerts.csv", tags=["review"])
 def recording_csv(aid: str) -> Response:
     return _csv([_detail(aid)])
 
 
-@app.get("/api/alerts.csv")
-def all_alerts_csv() -> Response:
-    """Every alert of every checked recording with its verdict: the safety team's register."""
-    return _csv([_detail(r["id"]) for r in store().list(5000) if r["status"] == "done"])
+@app.get("/api/alerts.csv", tags=["review"])
+def all_alerts_csv(unit: str | None = UNIT, frequency: str | None = FREQUENCY) -> Response:
+    """Every alert of every checked recording (or one unit/frequency's) with its verdict: the
+    safety team's register."""
+    recs = store().list(5000, unit, frequency)
+    return _csv([_detail(r["id"]) for r in recs if r["status"] == "done"])
 
 
-@app.post("/api/analyze")
+@app.post("/api/analyze", tags=["recordings"])
 async def analyze_recording(
     request: Request,
-    callsigns: str = "",
+    callsigns: str = Query("", max_length=2000),
     parser: str = Query(PARSER_NAME, pattern="^(tagger|spark|glimmer|rules)$"),
+    unit: str = Query("", max_length=100),
+    frequency: str = Query("", max_length=40),
 ) -> dict:
     """Check a recording and wait for the result (scripts and short files). It is stored like
     any other; long recordings are better sent to POST /api/recordings."""
     _check_parser(parser)
     data = await _upload(request)
-    aid = store().create(time.strftime("Recording %Y-%m-%d %H:%M"), parser, callsigns)
+    aid = store().create(time.strftime("Recording %Y-%m-%d %H:%M"), parser, callsigns,
+                         unit.strip(), frequency.strip())  # fmt: skip
     await asyncio.to_thread(_run_job, aid, data, callsigns.split(","), parser)
     rec = _detail(aid)
     if rec["status"] != "done":
@@ -682,7 +743,7 @@ async def analyze_recording(
     }
 
 
-@app.get("/healthz")
+@app.get("/healthz", tags=["system"])
 def healthz() -> dict:
     return {
         "ok": True,
@@ -694,17 +755,17 @@ def healthz() -> dict:
     }
 
 
-@app.get("/training")
+@app.get("/training", include_in_schema=False)
 def training_page() -> FileResponse:
     return _page("training.html")
 
 
-@app.get("/review")
+@app.get("/review", include_in_schema=False)
 def review_page() -> FileResponse:
     return _page("review.html")
 
 
-@app.get("/api/training")
+@app.get("/api/training", tags=["training"])
 def training(rounds: int = Query(400, gt=0, le=5000)) -> dict:
     """The tagger's training run: status, the last `rounds` log entries and daily checks."""
     status_path = TRAINING / "status.json"
@@ -721,7 +782,7 @@ def training(rounds: int = Query(400, gt=0, le=5000)) -> dict:
     }
 
 
-@app.get("/api/live")
+@app.get("/api/live", tags=["monitor"])
 def live(radius_deg: float = Query(0.6, gt=0, le=3)) -> dict:
     """Current real traffic around the configured centre (Bengaluru by default) from OpenSky
     (anonymous: 400 credits a day)."""

@@ -22,7 +22,8 @@
       <div class="tabs" role="tablist">
         <button role="tab" class="tab active" data-mode="replay" aria-selected="true">Scenario</button>
         <button role="tab" class="tab" data-mode="recording" aria-selected="false">Recording</button>
-        <button role="tab" class="tab" data-mode="live" aria-selected="false">Live BLR traffic</button>
+        <button role="tab" class="tab" data-mode="live" aria-selected="false">Live traffic</button>
+        <a class="tab" href="/review">Review</a>
         <a class="tab" href="/training">Training</a>
       </div>
       <label class="field replay-only">Seed <input id="seed" type="number" value="7" min="0"></label>
@@ -95,8 +96,9 @@
 
   <footer class="foot">
     Simulated scenarios use an illustrative airspace, not real aeronautical data. Live traffic from the
-    <a href="https://opensky-network.org" target="_blank" rel="noopener">OpenSky Network</a>. Research prototype, not for operational use.
+    <a href="https://opensky-network.org" target="_blank" rel="noopener">OpenSky Network</a>. Decision support for review: every alert needs a human verdict.
   </footer>
+  <script src="/static/common.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

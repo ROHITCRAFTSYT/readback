@@ -1,6 +1,6 @@
 # Readback monitor: the web UI and API on port 8000.
 #   docker build -t readback .
-#   docker run -p 8000:8000 --env-file .env readback
+#   docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
 # Without MODEL_API_KEY the scripted scenarios and the tagger still work; Voice Transcribe,
 # Muse Spark, recordings and occurrence reports need the key.
 FROM python:3.12-slim
@@ -23,11 +23,13 @@ COPY models ./models
 COPY training ./training
 RUN uv sync --locked --no-default-groups --group train \
     && useradd --create-home readback \
-    && mkdir -p scenarios results/raw \
-    && chown -R readback scenarios results
+    && mkdir -p scenarios results/raw /data \
+    && chown -R readback scenarios results /data
 
 USER readback
-ENV PATH="/app/.venv/bin:$PATH" READBACK_HOST=0.0.0.0 READBACK_PORT=8000
+ENV PATH="/app/.venv/bin:$PATH" READBACK_HOST=0.0.0.0 READBACK_PORT=8000 READBACK_DATA=/data
+# Recordings, reviewer verdicts and reports: mount a volume so they survive upgrades.
+VOLUME /data
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"

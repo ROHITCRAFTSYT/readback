@@ -4,7 +4,7 @@ A controller says "CSA1DZ, descend flight level one hundred". The pilot replies 
 
 Readback listens to the radio frequency, works out what each aircraft was cleared to do, checks the pilot's readback against it, and then checks the aircraft's actual track (ADS-B) against the clearance. When something doesn't match it raises an alert with the audio clip and the flight track attached, and an agent can draft the occurrence report.
 
-It runs three ways: on a live frequency with ADS-B, on a recording dropped into the browser (post-incident review, training, quality assurance), and as a replay of simulated traffic with planted errors.
+It runs three ways: on a live frequency with ADS-B, on recordings from the unit's voice recorder (post-incident review, training, quality assurance), and as a replay of simulated traffic with planted errors. For recordings there is a **review console**. Upload a shift's audio and it is checked in the background. Reviewers then give each alert a verdict and a note, the verdicts build an alert register that exports to CSV, and the confirmed share shows how precise Readback actually is on that unit's radio.
 
 Built for the [Meta Global AI Developer Hackathon](https://cerebralvalley.ai/e/meta-ai-developer-hackathon) (Oct 26 – Nov 4, 2026), Indie track, "Push the Frontier" theme.
 
@@ -39,6 +39,7 @@ flowchart LR
 | Oct 27 | A blind real-radio test for the tagger on ATCO2 (seven airports). Set 1 showed the tagger had overfit to Prague; generator v3 widened the phraseology, and a fresh set 2 now measures it. |
 | Oct 28 | First live Meta API runs. The Voice Transcribe go/no-go on 300 real-radio transcriptions came back CAUTION: digits pass, callsigns don't. Muse Spark was scored as a parser. Voice Transcribe and Spark now run live in the radar UI. Heard callsigns are matched to ADS-B, and the recognizer's stutters are dropped. On transcribed radio audio, the monitor catches all 68 planted problems. |
 | Oct 29 | Recordings: drop any audio file in the browser, and it is cut into transmissions at the silences, transcribed and checked. On a real Prague recording it catches a squawk read back as 1402 instead of 1404. Occurrence-report agent (Muse Spark with tool calls). Speaker roles from what is said ("ready for", "request") and from who was just addressed; a misheard callsign recovered from the flight number. Spark and the tagger scored on the blind set. Docker image, built and smoke-tested in CI. |
+| Oct 29 | Review console for quality and safety teams. Recordings up to 4 hours are checked as background jobs with progress, and a transmission Voice Transcribe fails on is skipped instead of failing the shift. Everything is kept in SQLite: recordings, reviewer verdicts and notes, and drafted reports, so a restart loses nothing. Alert register as CSV, field precision from the verdicts, an optional access token, a retention period, and a configurable live airspace. |
 
 Everything in this repository was written during the hackathon.
 
@@ -57,7 +58,7 @@ Or with Docker (ffmpeg, espeak-ng and the CPU tagger included):
 
 ```bash
 docker build -t readback .
-docker run -p 8000:8000 --env-file .env readback
+docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
 ```
 
 | Variable | Default | |
@@ -66,8 +67,14 @@ docker run -p 8000:8000 --env-file .env readback
 | `READBACK_PARSER` | `tagger` | `rules` to use the rule-based parser in the monitor. |
 | `READBACK_HOST` | `127.0.0.1` (`0.0.0.0` in Docker) | Address the server listens on. |
 | `READBACK_PORT` | `8000` | Port. |
+| `READBACK_DATA` | `./var` (`/data` in Docker) | Where recordings, verdicts and reports are kept (`readback.db` plus `audio/`). Back up this folder. |
+| `READBACK_TOKEN` | (none) | When set, every API and audio request needs this access token. The UI asks for it once and keeps it in an HttpOnly cookie for 12 hours. |
+| `READBACK_RETENTION_DAYS` | `0` (keep) | Delete recordings, with their verdicts and reports, after this many days. |
+| `READBACK_WORKERS` | `2` | Recordings checked at the same time. |
+| `READBACK_MAX_UPLOAD_MB` | `500` | Largest upload accepted. |
+| `READBACK_LIVE_CENTER`, `READBACK_LIVE_NAME` | Bengaluru | Centre (`"lat,lon"`) and name of the airspace the Live tab shows. |
 
-`GET /healthz` reports the parser in use and whether the Muse models are available.
+`GET /healthz` reports the parser in use, whether the Muse models are available, and whether a token is required.
 
 ## Day-1 go/no-go test
 
@@ -171,13 +178,46 @@ uv run python scripts/eval_scenarios.py --audio    # Windows; about 150 Voice Tr
 
 ## Checking a recording
 
-The **Recording** tab takes any audio file: a recorder export, a LiveATC archive, a phone recording of a scanner (WAV directly, other formats through ffmpeg, up to 10 minutes). It is cut into transmissions at the silences between them, each is transcribed by Voice Transcribe, and the monitor pairs and checks them as it would live. Callsigns known to be on frequency can be given, in ADS-B form (`SWR123`) or spoken, and are used as keywords and for matching. The result is the radio log, alerts and an audio player. The same check is an API call:
+The **Recording** tab and the review console take any audio file: a recorder export, a LiveATC archive, a phone recording of a scanner (WAV directly, other formats through ffmpeg, up to 4 hours). It is cut into transmissions at the silences between them, and each is transcribed by Voice Transcribe; only those single transmissions are sent, never the whole file. The monitor then pairs and checks them as it would live. Callsigns known to be on frequency can be given, in ADS-B form (`SWR123`) or spoken, and are used as keywords and for matching. The result is the radio log, alerts and an audio player. The same check is an API call:
 
 ```bash
 curl -X POST --data-binary @frequency.wav "http://127.0.0.1:8000/api/analyze?callsigns=SWR123,DLH4CK&parser=tagger"
 ```
 
-Tested on a 43-second real recording from Prague (UWB-ATCC) in which a pilot reads back squawk 1404 as 1402. Voice Transcribe's output differed from run to run on this accented radio. Of seven runs, three gave the exact alert ("read back squawk 1402, cleared squawk 1404"), two flagged the same squawk as not read back, and two blamed a wrong callsign after the recognizer dropped the word "squawk". So on real radio the error is flagged every time, but not always cleanly.
+Tested on a 43-second real recording from Prague (UWB-ATCC) in which a pilot reads back squawk 1404 as 1402. Voice Transcribe's output differed from run to run on this accented radio. Of eight runs, three gave the exact alert ("read back squawk 1402, cleared squawk 1404"), three flagged the same squawk as not read back, and two blamed a wrong callsign after the recognizer dropped the word "squawk". So on real radio the error is flagged every time, but not always cleanly. That is why every alert goes to a human reviewer.
+
+## Review console and alert register
+
+`/review` is where a unit's quality or safety team works through recordings:
+
+- **Upload** a recording with a name and, optionally, the callsigns on frequency. It is checked in the background with a progress bar, so a four-hour shift doesn't hold up the browser. A restart marks unfinished jobs as failed instead of leaving them hanging.
+- **Review** each alert next to the audio. "▶" plays from just before it, and the transmission being played is highlighted in the radio log. Give a verdict (*Confirm*, *False alarm*, or *Reopen*) and a note; the reviewer's name and the time are recorded.
+- **Report**: draft the occurrence report for any alert. The draft is kept with the recording.
+- **Register**: every alert of every recording, with its verdict, note, reviewer and time, as CSV (`/api/alerts.csv`, or per recording). It opens cleanly in Excel, and transcript text can't run as a spreadsheet formula.
+- **Field precision**: confirmed alerts as a share of all judged alerts. This is the number offline benchmarks can't give, measured on the unit's own radio, accents and phraseology.
+
+All of it is kept in one SQLite file plus the audio under `READBACK_DATA`. Deleting a recording deletes its audio, verdicts and reports; `READBACK_RETENTION_DAYS` does the same automatically.
+
+| API | |
+|---|---|
+| `POST /api/recordings?name&callsigns&parser` | Queue a recording (the body is the audio file). Returns `{"id"}`. |
+| `GET /api/recordings` | All recordings with status, progress, summary and verdict counts, plus totals and field precision. |
+| `GET /api/recordings/{id}` | Transmissions, alerts with their verdicts, and the audio URL. |
+| `PUT /api/recordings/{id}/alerts/{i}/review` | `{"verdict": "confirmed" \| "false_alarm" \| "open", "note", "reviewer"}` |
+| `POST /api/report/{id}/{i}` | Draft (or fetch the kept) occurrence report. |
+| `GET /api/alerts.csv`, `GET /api/recordings/{id}/alerts.csv` | The alert register. |
+| `DELETE /api/recordings/{id}` | Delete a recording and everything about it. |
+| `POST /api/analyze` | Check a short recording and wait for the result (scripts). |
+
+## Deploying for an ATC unit
+
+Readback is **decision support for review**, not operational alerting. Its place is post-operations quality assurance, investigation support and training: the work a unit's QA or safety team does today by listening to recordings by hand. It is not a certified ATM system, and it does not sit in the controller's loop.
+
+- **Install.** Run one container on a server inside the unit's network (`docker run ... -v readback-data:/data`). Put it behind the unit's reverse proxy for HTTPS, and set `READBACK_TOKEN`. The sign-in cookie is marked Secure when the proxy says the request came over HTTPS. Set `FORWARDED_ALLOW_IPS` to the proxy's address so the server trusts that header (it trusts only 127.0.0.1 by default).
+- **What leaves the building.** Only the single transmissions go to Meta's Voice Transcribe, plus the transcripts if Muse Spark is chosen as the parser or a report is drafted. Readback's own tagger parses on the server's CPU, with no network. Recordings, verdicts and reports stay in `READBACK_DATA`.
+- **Retention and backup.** Set `READBACK_RETENTION_DAYS` to the unit's recording-retention policy. Back up by copying `READBACK_DATA`.
+- **Callsigns.** Give the callsigns on frequency when uploading, taken from the flight-plan or ADS-B log for the period. Recognition of callsigns is the weakest link without them.
+- **Measure before you trust.** Review the first weeks of alerts and watch field precision. It is the honest measure for your radio.
 
 ## Occurrence reports
 
@@ -232,7 +272,7 @@ uv run pytest
 uv run ruff check .
 ```
 
-CI runs both, then builds the Docker image and smoke-tests it.
+CI runs both, then builds the Docker image and smoke-tests it: the UI, the review console, the data volume, and speech synthesis.
 
 ## Data and licenses
 

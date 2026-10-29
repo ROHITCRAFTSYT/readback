@@ -26,3 +26,6 @@ training/*.tmp
 
 # Fine-tuning data written by scripts/export_sft.py (regenerated from the seed)
 data/sft/
+
+# Recordings, verdicts and reports kept by the server (READBACK_DATA): operational data
+var/

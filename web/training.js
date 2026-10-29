@@ -351,7 +351,7 @@ function onHover(ev) {
 
 async function refresh() {
   try {
-    const res = await fetch("/api/training");
+    const res = await api("/api/training");
     if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
     data = await res.json();
     renderStatus();

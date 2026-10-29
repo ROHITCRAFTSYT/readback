@@ -84,6 +84,7 @@ body.recording button.recording-only { display: inline-block; }
   min-height: 0;
 }
 .scope-wrap { position: relative; background: var(--scope); min-height: 420px; }
+.scope-note a { pointer-events: auto; color: var(--phosphor); }
 #scope { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .scope-note {
   position: absolute; top: 12px; left: 12px; max-width: calc(100% - 24px);

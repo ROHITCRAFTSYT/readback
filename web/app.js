@@ -328,38 +328,11 @@ function onAlert(alert) {
 }
 
 // ---------- occurrence reports ----------
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
-function inline(s) {
-  return escapeHtml(s)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/(^|\s)\*(.+?)\*(?=\s|$)/g, "$1<em>$2</em>");
-}
-function renderMarkdown(md) {
-  const out = [];
-  let list = false;
-  for (const line of md.split("\n")) {
-    if (line.startsWith("- ")) {
-      if (!list) { out.push("<ul>"); list = true; }
-      out.push(`<li>${inline(line.slice(2))}</li>`);
-      continue;
-    }
-    if (list) { out.push("</ul>"); list = false; }
-    if (line.startsWith("# ")) out.push(`<h1>${inline(line.slice(2))}</h1>`);
-    else if (line.startsWith("## ")) out.push(`<h3>${inline(line.slice(3))}</h3>`);
-    else if (line.startsWith("*") && line.endsWith("*")) out.push(`<p class="muted">${inline(line)}</p>`);
-    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
-  }
-  if (list) out.push("</ul>");
-  return out.join("");
-}
 async function draftReport(sid, index, btn) {
   btn.disabled = true;
   btn.textContent = "Investigating…";
   try {
-    const res = await fetch(`/api/report/${sid}/${index}`, { method: "POST" });
+    const res = await api(`/api/report/${sid}/${index}`, { method: "POST" });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || res.statusText);
     $("report-body").innerHTML = renderMarkdown(data.markdown);
@@ -385,22 +358,32 @@ async function analyzeRecording() {
   if (!museOK) { $("scope-note").textContent = "Checking recordings needs MODEL_API_KEY on the server."; return; }
   parserName = $("parser").value;
   $("analyze").disabled = true;
-  $("scope-note").textContent = `Transcribing ${file.name} with Voice Transcribe, then checking every readback…`;
+  $("scope-note").textContent = `Uploading ${file.name}…`;
   try {
-    const q = new URLSearchParams({ callsigns: $("rec-cs").value, parser: parserName });
-    const res = await fetch(`/api/analyze?${q}`, { method: "POST", body: file });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || res.statusText);
-    sessionId = data.session;
+    const q = new URLSearchParams({ name: file.name, callsigns: $("rec-cs").value, parser: parserName });
+    const res = await api(`/api/recordings?${q}`, { method: "POST", body: file });
+    const queued = await res.json();
+    if (!res.ok) throw new Error(queued.detail || res.statusText);
+    let data;
+    for (;;) {  // checked in the background; long recordings take a while
+      data = await api(`/api/recordings/${queued.id}`).then((r) => r.json());
+      if (data.status === "done") break;
+      if (data.status === "failed") throw new Error(data.error);
+      $("scope-note").textContent =
+        `Transcribing ${file.name} with Voice Transcribe: ${Math.round(data.progress * 100)}% …`;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    sessionId = data.id;
     for (const tx of data.transmissions) onTx(tx);
     for (const alert of [...data.alerts].sort((a, b) => a.t - b.t)) onAlert(alert);
     simT = data.duration;
     const audio = $("rec-audio");
     audio.src = data.audio;
     audio.hidden = false;
-    $("scope-note").textContent =
-      `${file.name} · ${fmtTime(data.duration)} · ${data.transmissions.length} transmissions · ` +
-      `${data.alerts.length} alerts · Voice Transcribe → ${PARSERS[parserName]} · no ADS-B for recordings`;
+    $("scope-note").innerHTML =
+      `${escapeHtml(file.name)} · ${fmtTime(data.duration)} · ${data.transmissions.length} transmissions · ` +
+      `${data.alerts.length} alerts · Voice Transcribe → ${PARSERS[parserName]} · no ADS-B for recordings · ` +
+      `<a href="/review#${data.id}">open in Review to give verdicts</a>`;
   } catch (err) {
     $("scope-note").textContent = `Could not check the recording: ${err.message}`;
   } finally {
@@ -429,7 +412,9 @@ async function play() {
   reset();
   const seed = parseInt($("seed").value, 10) || 0;
   const speed = $("speed").value;
-  const info = await fetch(`/api/scenario/${seed}`).then((r) => r.json());
+  const res = await api(`/api/scenario/${seed}`);
+  if (!res.ok) { $("scope-note").textContent = `Scenario unavailable: ${(await res.json()).detail}`; return; }
+  const info = await res.json();
   center = info.center;
   roster = info.aircraft;
   let listen = $("hear").value === "muse";
@@ -465,7 +450,7 @@ async function play() {
 
 async function pollLive() {
   try {
-    const res = await fetch("/api/live");
+    const res = await api("/api/live");
     if (!res.ok) throw new Error((await res.json()).detail);
     const data = await res.json();
     center = data.center;
@@ -476,7 +461,7 @@ async function pollLive() {
     }
     for (const key of [...aircraft.keys()]) if (!seen.has(key)) aircraft.delete(key);
     $("scope-note").textContent =
-      `Live ADS-B around Bengaluru from OpenSky · ${data.states.length} airborne · ` +
+      `Live ADS-B around ${data.name} from OpenSky · ${data.states.length} airborne · ` +
       `no radio feed in live mode · updated ${new Date().toLocaleTimeString()}`;
   } catch (err) {
     $("scope-note").textContent = `Live traffic unavailable: ${err.message}`;
@@ -497,7 +482,7 @@ function setMode(mode) {
     liveTimer = setInterval(pollLive, 15000);
   } else if (mode === "recording") {
     $("scope-note").textContent =
-      "Check a recorded frequency: choose an audio file (up to 10 minutes) and press Check recording.";
+      "Check a recorded frequency: choose an audio file (up to 4 hours) and press Check recording. Past recordings and verdicts are under Review.";
   } else {
     $("scope-note").textContent = "Press Play to replay a simulated Bengaluru approach frequency.";
     $("play").textContent = "Play";

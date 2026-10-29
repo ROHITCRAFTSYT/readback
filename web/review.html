@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readback · Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/review.css">
+</head>
+<body class="review-page">
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>Readback</h1>
+        <p>Recording review for quality and safety teams</p>
+      </div>
+    </div>
+    <div class="controls">
+      <nav class="tabs">
+        <a class="tab" href="/">Monitor</a>
+        <a class="tab active" href="/review" aria-current="page">Review</a>
+        <a class="tab" href="/training">Training</a>
+      </nav>
+      <label class="field">Reviewer <input id="reviewer" type="text" class="wide-input" placeholder="your name or ID" maxlength="200"></label>
+    </div>
+  </header>
+
+  <section class="kpis" aria-label="Totals">
+    <div><span id="k-rec">0</span> recordings</div>
+    <div><span id="k-hours">0</span> hours</div>
+    <div><span id="k-alerts">0</span> alerts</div>
+    <div><span id="k-conf" class="err">0</span> confirmed</div>
+    <div><span id="k-false">0</span> false alarms</div>
+    <div><span id="k-open" class="warn">0</span> to review</div>
+    <div title="Confirmed alerts as a share of all alerts reviewers have judged">field precision <span id="k-prec">–</span></div>
+    <a class="tab small" href="/api/alerts.csv" download>Export all alerts (CSV)</a>
+  </section>
+
+  <main class="review-grid">
+    <aside class="panel">
+      <form id="upload" class="upload">
+        <h2>Check a recording</h2>
+        <label>Audio file <input id="up-file" type="file" accept="audio/*,video/*" required></label>
+        <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. TWR 118.1 · 29 Oct 06:00-10:00"></label>
+        <label>Callsigns on frequency (optional) <input id="up-cs" type="text" maxlength="2000" placeholder="SWR123, DLH4CK"></label>
+        <label>Parser
+          <select id="up-parser">
+            <option value="tagger" selected>Tagger (offline)</option>
+            <option value="spark">Muse Spark</option>
+            <option value="rules">Rules</option>
+          </select>
+        </label>
+        <button class="primary" type="submit">Upload and check</button>
+        <p id="up-msg" class="hint">WAV or any common audio format, up to 4 hours. Long recordings are checked in the background.</p>
+      </form>
+      <h2>Recordings <span id="retention" class="count" hidden></span></h2>
+      <ol id="list" class="list rec-list"><li class="empty">No recordings yet.</li></ol>
+    </aside>
+
+    <section id="detail" class="panel detail">
+      <div class="empty-detail">Select a recording, or upload one.</div>
+    </section>
+  </main>
+
+  <dialog id="report" class="report" aria-labelledby="report-title">
+    <div class="report-head">
+      <h2 id="report-title">Occurrence report</h2>
+      <div class="report-actions">
+        <a id="report-dl" class="tab" download="occurrence-report.md" href="#">Download .md</a>
+        <button id="report-close" class="tab" type="button">Close</button>
+      </div>
+    </div>
+    <div id="report-body" class="report-body"></div>
+  </dialog>
+
+  <footer class="foot">
+    Readback flags possible readback errors for human review. It is decision support, not a certified ATM system: every alert needs a reviewer's verdict.
+  </footer>
+  <script src="/static/common.js"></script>
+  <script src="/static/review.js"></script>
+</body>
+</html>

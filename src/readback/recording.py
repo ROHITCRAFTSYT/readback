@@ -7,11 +7,15 @@ transcribed in diarization mode instead, one transmission per speaker turn. The 
 pairs instructions with readbacks exactly as it does live. Without ADS-B there are no
 track checks, but callsigns known to be on frequency can be given as keywords, and heard
 callsigns are matched to them.
+
+Recordings can be hours long (a whole shift from the unit's voice recorder): only the single
+transmissions go to Voice Transcribe, whose limit is 10 minutes per request.
 """
 
 from __future__ import annotations
 
 import io
+import logging
 import shutil
 import subprocess
 import wave
@@ -29,11 +33,14 @@ from readback.keywords import PHRASEOLOGY, fit
 from readback.monitor import Monitor, Transmission
 from readback.normalize import canonical, spoken
 
-MAX_SECONDS = 600  # Voice Transcribe takes at most 10 minutes per request
+MAX_SECONDS = 4 * 3600  # a long shift; memory use is about 30 MB per recorded minute
+REQUEST_SECONDS = 590  # Voice Transcribe takes at most 10 minutes per request
 FRAME = 0.03  # seconds per energy frame
 MIN_GAP = 0.35  # silence that ends a transmission
 MIN_SPEECH = 0.6  # shorter bursts are clicks and squelch tails
 PAD = 0.15  # kept either side of each transmission
+
+log = logging.getLogger(__name__)
 
 
 class RecordingError(ValueError):
@@ -95,8 +102,11 @@ def segments(pcm: np.ndarray, rate: int = 16000) -> list[tuple[float, float]]:
     frames = len(pcm) // n
     if frames == 0:
         return []
-    x = pcm[: frames * n].astype(np.float64).reshape(frames, n)
-    db = 20 * np.log10(np.sqrt((x**2).mean(axis=1)) + 1)
+    db = np.empty(frames)
+    block = 20000  # frames at a time, so hours of audio never become one float array
+    for i in range(0, frames, block):
+        x = pcm[i * n : min(i + block, frames) * n].astype(np.float64).reshape(-1, n)
+        db[i : i + len(x)] = 20 * np.log10(np.sqrt((x**2).mean(axis=1)) + 1)
     loud = db > np.percentile(db, 10) + 10
     runs, start = [], None
     for i, on in enumerate([*loud, False]):
@@ -112,28 +122,57 @@ def segments(pcm: np.ndarray, rate: int = 16000) -> list[tuple[float, float]]:
         else:
             merged.append(run)
     total = len(pcm) / rate
-    return [(max(a - PAD, 0.0), min(b + PAD, total)) for a, b in merged if b - a >= MIN_SPEECH]
+    spans = []
+    for a, b in merged:
+        if b - a < MIN_SPEECH:
+            continue
+        a, b = max(a - PAD, 0.0), min(b + PAD, total)
+        while b - a > REQUEST_SECONDS:  # minutes without a pause: cut to the request limit
+            spans.append((a, a + REQUEST_SECONDS))
+            a += REQUEST_SECONDS
+        spans.append((a, b))
+    return spans
 
 
-def _turns(wav: bytes, asr, keywords: list[str]) -> list:
-    """One turn per transmission, from silence segmentation, or from diarization."""
+def _turns(
+    wav: bytes, asr, keywords: list[str], progress: Callable[[float], None] | None = None
+) -> tuple[list, int]:
+    """One turn per transmission, from silence segmentation, or from diarization; and how many
+    transmissions Voice Transcribe failed on (they are skipped, not fatal)."""
     pcm = _pcm(wav)
     spans = segments(pcm)
     if len(spans) < 2:
+        if len(pcm) / 16000 > REQUEST_SECONDS:
+            raise RecordingError(
+                "found no pauses between transmissions; recordings without them can be at most "
+                "10 minutes long"
+            )
         result = asr.transcribe(wav, mode="DIARIZATION", keywords=keywords)
         if result.turns:
-            return result.turns
+            return result.turns, 0
         text = result.transcript.strip()
-        return [SimpleNamespace(start_ms=0, transcript=text, speaker=None)] if text else []
+        return ([SimpleNamespace(start_ms=0, transcript=text, speaker=None)] if text else []), 0
+
+    done, failed = 0, 0
 
     def one(span: tuple[float, float]) -> SimpleNamespace:
+        nonlocal done, failed
         a, b = (int(t * 16000) for t in span)
-        result = asr.transcribe(_wav(pcm[a:b]), mode="PUSH_TO_TALK", keywords=keywords)
-        return SimpleNamespace(start_ms=int(span[0] * 1000), transcript=result.transcript,
-                               speaker=None)  # fmt: skip
+        try:
+            text = asr.transcribe(_wav(pcm[a:b]), mode="PUSH_TO_TALK", keywords=keywords).transcript
+        except Exception as exc:  # one lost transmission must not lose the whole shift
+            log.warning("transmission at %.1f s not transcribed: %s", span[0], exc)
+            text, failed = "", failed + 1
+        done += 1
+        if progress:
+            progress(done / len(spans))
+        return SimpleNamespace(start_ms=int(span[0] * 1000), transcript=text, speaker=None)
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        return list(pool.map(one, spans))
+        turns = list(pool.map(one, spans))
+    if failed == len(spans):
+        raise RecordingError("Voice Transcribe failed on every transmission; try again later")
+    return turns, failed
 
 
 def callsign_phrase(callsign: str) -> str:
@@ -151,15 +190,19 @@ def analyze(
     asr,
     parse: Callable[[str], Clearance],
     callsigns: Iterable[str] = (),
+    progress: Callable[[float], None] | None = None,
 ) -> dict:
-    """Transcribe and check a recording. Returns transmissions and alerts, times in seconds."""
+    """Transcribe and check a recording. Returns transmissions and alerts, times in seconds.
+    progress, if given, is called with the share of transmissions transcribed so far."""
     wav = to_wav(data)
     seconds = duration(wav)
     if seconds > MAX_SECONDS:
-        raise RecordingError(f"recording is {seconds:.0f} s; the limit is {MAX_SECONDS} s")
+        raise RecordingError(
+            f"recording is {seconds / 60:.0f} minutes; the limit is {MAX_SECONDS // 3600} hours"
+        )
     known = [callsign_phrase(c) for c in callsigns if c.strip()]
     keywords = list(PHRASEOLOGY) + [fit(spoken(c.split())) for c in known]
-    turns = _turns(wav, asr, keywords)
+    turns, failed = _turns(wav, asr, keywords, progress)
 
     monitor = Monitor(parse)
     monitor.traffic = set(known)
@@ -188,6 +231,7 @@ def analyze(
     return {
         "wav": wav,
         "duration": seconds,
+        "failed_transmissions": failed,
         "transmissions": transmissions,
         "alerts": [dict(a.to_dict(), t=a.time) for a in alerts],
     }

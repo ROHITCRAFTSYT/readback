@@ -190,7 +190,7 @@ def test_analyze_transcribes_each_transmission_on_its_own():
 
 def test_recording_limits_and_callsign_forms():
     assert callsign_phrase("SWR123") == callsign_phrase("swiss one two three") == "swiss 1 2 3"
-    with pytest.raises(RecordingError, match="limit"):
+    with pytest.raises(RecordingError, match="no pauses"):
         analyze(_wav(seconds=601, rate=8000), FakeASR([]), lambda t: None)
     if shutil.which("ffmpeg") is None:
         with pytest.raises(RecordingError, match="ffmpeg"):
@@ -213,7 +213,7 @@ def test_any_format_ffmpeg_reads_is_accepted(tmp_path):
 
 def test_analyze_and_report_endpoints(tmp_path, monkeypatch):
     monkeypatch.setenv("MODEL_API_KEY", "test")
-    monkeypatch.setattr(server, "UPLOADS", tmp_path)
+    server.configure(tmp_path)
     monkeypatch.setattr(server, "_asr", lambda: FakeASR([
         (0.0, "ifly nine six one, descend flight level one hundred"),
         (6.0, "descending flight level niner zero, ifly nine six one"),
@@ -227,7 +227,7 @@ def test_analyze_and_report_endpoints(tmp_path, monkeypatch):
     assert [tx["role"] for tx in body["transmissions"]] == ["controller", "pilot"]
     assert body["transmissions"][1]["items"][0]["label"] == "FL090"
     [alert] = body["alerts"]
-    assert alert["index"] == 0 and (tmp_path / f"{body['session']}.wav").exists()
+    assert alert["index"] == 0 and (tmp_path / "audio" / f"{body['session']}.wav").exists()
 
     report = client.post(f"/api/report/{body['session']}/0").json()
     assert report["report"] == REPORT and report["markdown"].startswith("# Readback error")
@@ -235,4 +235,5 @@ def test_analyze_and_report_endpoints(tmp_path, monkeypatch):
     assert client.post(f"/api/report/{body['session']}/5").status_code == 404
     assert client.post("/api/analyze", content=b"").status_code == 400
     monkeypatch.delenv("MODEL_API_KEY")
-    assert client.post(f"/api/report/{body['session']}/0").status_code == 400
+    assert client.post(f"/api/report/{body['session']}/0").json() == report  # kept, no key needed
+    assert client.post(f"/api/report/{body['session']}/1").status_code == 400

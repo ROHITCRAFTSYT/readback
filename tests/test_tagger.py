@@ -49,6 +49,43 @@ def test_generator_is_deterministic_and_labels_match_truth():
                 assert same(e.clearance, tidy(e.truth)), (e.tokens, e.clearance, e.truth)
 
 
+class ScriptedRng:
+    """Stands in for random.Random with the answers a test needs, in order."""
+
+    def __init__(self, *answers):
+        self.answers = list(answers)
+
+    def randint(self, a, b):
+        return self.answers.pop(0)
+
+    def random(self):
+        return self.answers.pop(0)
+
+
+def _cut(text, tags, owner, *answers):
+    gen = Generator(3, ScriptedRng(*answers))
+    tokens, tags, owner = gen._truncate(text.split(), tags, owner)
+    return tokens, decode(tokens, tags)
+
+
+def test_truncate_labels_only_what_can_still_be_heard():
+    tags = ["B-heading", "I-heading", "I-heading", "I-heading",
+            "B-callsign", "I-callsign", "I-callsign", "I-callsign"]  # fmt: skip
+    owner = [1, 1, 1, 1, 0, 0, 0, 0]
+    # cut 1 token at the start, no fragment: "heading" is gone, so "0 3 0" is just digits
+    tokens, c = _cut("heading 0 3 0 csa 1 d z", tags[:], owner[:], 1, 0.1, 0.9)
+    assert tokens == "0 3 0 csa 1 d z".split()
+    assert c == Clearance("csa 1 d z", [])
+
+    tags = ["B-callsign", "I-callsign", "I-callsign", "I-callsign",
+            "B-flight_level", "I-flight_level", "I-flight_level", "I-flight_level", "I-flight_level", "I-flight_level"]  # fmt: skip
+    owner = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
+    # cut "csa" and half of "one": what is left of the callsign word stays in the callsign
+    tokens, c = _cut("csa 1 d z descend flight level 1 0 0", tags, owner, 1, 0.1, 0.1, 2)
+    assert tokens[:3] == ["ne", "d", "z"]
+    assert c == Clearance("ne d z", [Item("flight_level", "100", "descend")])
+
+
 def test_generator_rejects_unknown_level():
     import random
 

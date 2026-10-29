@@ -17,6 +17,12 @@ zulu"), the "heavy" suffix, gusting and variable wind, traffic information with 
 passing-level reports, initial-climb clearances, speed limits ("maximum one six zero"),
 and greetings in the languages heard on European frequencies.
 
+Version 4 makes cut-off clips label only what can still be heard, so every label is
+learnable: a fragment of a callsign word stays part of the callsign ("...ike 9 3 3 romeo"),
+and a value whose keyword was cut away ("...0 3 0" with "heading" gone) is no longer an
+instruction. Under version 3 those were labeled from what had been said, which no parser
+can see; they were most of the champion's remaining level-3 mistakes.
+
 `focus` multiplies how often an item kind or a kind of noise is drawn, so the trainer can
 push practice toward whatever the model currently gets wrong.
 """
@@ -31,7 +37,7 @@ from readback.normalize import canonical
 from readback.tagger.decode import FILLERS, RUNWAY_KINDS, decode, item_from_span
 
 # Bump when the generator changes what it produces; the trainer then re-scores its champion.
-VERSION = 3
+VERSION = 4
 
 DIGIT_WORDS = "zero one two three four five six seven eight niner".split()
 PLAIN_DIGITS = "zero one two three four five six seven eight nine".split()
@@ -789,10 +795,12 @@ class Generator:
         return tokens, tags
 
     def _truncate(self, tokens, tags, owner):
-        """Cut the clip off at the start or the end, often mid-word. A span that was cut keeps
-        its label only if it still says the same thing ("...ared to land runway 1 3" still
-        clears to land on 13, "flight level 1 0" is not FL100); a callsign survives with two
-        or more tokens left (pilots and controllers abbreviate them anyway)."""
+        """Cut the clip off at the start or the end, often mid-word. Labels follow what is
+        still there to hear. A cut span keeps its label only if it still says the same thing
+        ("...ared to land runway 1 3" still clears to land on 13, "flight level 1 0" is not
+        FL100) and some of its words survive: bare digits whose keyword was cut away could be
+        anything. A callsign survives with two or more tokens left (pilots and controllers
+        abbreviate them anyway), and a word of it cut in half stays part of it."""
         rng = self.rng
         before = {ref: _span_item(tokens, tags, owner, ref) for ref in set(owner) - {-1}}
         cut = rng.randint(1, 3)
@@ -803,7 +811,8 @@ class Generator:
         if rng.random() < 0.6:
             hit.add(owner[edge])
             tokens[edge] = _fragment(tokens[edge], rng, keep_end=at_start)
-            tags[edge], owner[edge] = "O", -1
+            if owner[edge] != 0:
+                tags[edge], owner[edge] = "O", -1
         idx = [i for i in range(len(tokens)) if i not in gone]
         tokens, tags, owner = (
             [tokens[i] for i in idx],
@@ -814,12 +823,14 @@ class Generator:
             if o >= 0 and (i == 0 or owner[i - 1] != o):
                 tags[i] = "B" + tags[i][1:]
         for ref in hit - {-1}:
-            if ref == 0 and sum(o == 0 for o in owner) >= 2:
+            left = [t for t, o in zip(tokens, owner, strict=True) if o == ref and t not in FILLERS]
+            if ref == 0 and len(left) >= 2:
                 continue
             if (
                 ref > 0
                 and before[ref] is not None
-                and (_span_item(tokens, tags, owner, ref) == before[ref])
+                and _span_item(tokens, tags, owner, ref) == before[ref]
+                and any(len(t) > 1 and not t.isdigit() for t in left)
             ):
                 continue
             for i, o in enumerate(owner):

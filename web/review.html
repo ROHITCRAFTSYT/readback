@@ -6,66 +6,68 @@
   <title>Readback · Review</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="/static/review.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=2">
+  <link rel="stylesheet" href="/static/review.css?v=2">
 </head>
 <body class="review-page">
-  <header class="bar">
-    <div class="brand">
-      <span class="mark" aria-hidden="true"></span>
+  <nav class="nav" id="nav" aria-label="Main"></nav>
+
+  <div class="page">
+    <header class="page-head">
       <div>
-        <h1>Readback</h1>
-        <p>Recording review for quality and safety teams</p>
+        <h1>Review</h1>
+        <p>Recorded frequencies for quality and safety teams: upload, listen, give each alert a verdict.</p>
       </div>
-    </div>
-    <div class="controls">
-      <nav class="tabs">
-        <a class="tab" href="/">Monitor</a>
-        <a class="tab active" href="/review" aria-current="page">Review</a>
-        <a class="tab" href="/training">Training</a>
-      </nav>
-      <label class="field">Reviewer <input id="reviewer" type="text" class="wide-input" placeholder="your name or ID" maxlength="200"></label>
-    </div>
-  </header>
+      <div class="head-actions">
+        <label class="field">Reviewer <input id="reviewer" type="text" class="wide-input" placeholder="your name or ID" maxlength="200"></label>
+        <a class="btn" href="/api/alerts.csv" download>Export alert register (CSV)</a>
+      </div>
+    </header>
 
-  <section class="kpis" aria-label="Totals">
-    <div><span id="k-rec">0</span> recordings</div>
-    <div><span id="k-hours">0</span> hours</div>
-    <div><span id="k-alerts">0</span> alerts</div>
-    <div><span id="k-conf" class="err">0</span> confirmed</div>
-    <div><span id="k-false">0</span> false alarms</div>
-    <div><span id="k-open" class="warn">0</span> to review</div>
-    <div title="Confirmed alerts as a share of all alerts reviewers have judged">field precision <span id="k-prec">–</span></div>
-    <a class="tab small" href="/api/alerts.csv" download>Export all alerts (CSV)</a>
-  </section>
-
-  <main class="review-grid">
-    <aside class="panel">
-      <form id="upload" class="upload">
-        <h2>Check a recording</h2>
-        <label>Audio file <input id="up-file" type="file" accept="audio/*,video/*" required></label>
-        <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. TWR 118.1 · 29 Oct 06:00-10:00"></label>
-        <label>Callsigns on frequency (optional) <input id="up-cs" type="text" maxlength="2000" placeholder="SWR123, DLH4CK"></label>
-        <label>Parser
-          <select id="up-parser">
-            <option value="tagger" selected>Tagger (offline)</option>
-            <option value="spark">Muse Spark</option>
-            <option value="glimmer">Muse Glimmer (fine-tuned)</option>
-            <option value="rules">Rules</option>
-          </select>
-        </label>
-        <button class="primary" type="submit">Upload and check</button>
-        <p id="up-msg" class="hint">WAV or any common audio format, up to 4 hours. Long recordings are checked in the background.</p>
-      </form>
-      <h2>Recordings <span id="retention" class="count" hidden></span></h2>
-      <ol id="list" class="list rec-list"><li class="empty">No recordings yet.</li></ol>
-    </aside>
-
-    <section id="detail" class="panel detail">
-      <div class="empty-detail">Select a recording, or upload one.</div>
+    <section class="metrics six" aria-label="Totals">
+      <div class="metric"><span class="label">Recordings</span><span id="k-rec" class="value">0</span><span class="sub"><span id="k-hours">0</span> hours of radio</span></div>
+      <div class="metric"><span class="label">Alerts</span><span id="k-alerts" class="value">0</span></div>
+      <div class="metric"><span class="label">To review</span><span id="k-open" class="value warn">0</span></div>
+      <div class="metric"><span class="label">Confirmed</span><span id="k-conf" class="value err">0</span></div>
+      <div class="metric"><span class="label">False alarms</span><span id="k-false" class="value">0</span></div>
+      <div class="metric" title="Confirmed alerts as a share of all alerts reviewers have judged"><span class="label">Field precision</span><span id="k-prec" class="value ok">–</span><span class="sub">measured on your radio</span></div>
     </section>
-  </main>
+
+    <main class="review-grid">
+      <aside class="card side-col">
+        <form id="upload" class="upload">
+          <h2>Check a recording</h2>
+          <label>Audio file <input id="up-file" type="file" accept="audio/*,video/*" required></label>
+          <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. TWR 118.1 · 29 Oct 06:00-10:00"></label>
+          <label>Callsigns on frequency <span class="opt">optional</span> <input id="up-cs" type="text" maxlength="2000" placeholder="SWR123, DLH4CK"></label>
+          <label>Parser
+            <select id="up-parser">
+              <option value="tagger" selected>Tagger (on-prem, no network)</option>
+              <option value="spark">Muse Spark</option>
+              <option value="glimmer">Muse Glimmer (fine-tuned)</option>
+              <option value="rules">Rules</option>
+            </select>
+          </label>
+          <button class="primary" type="submit">Upload and check</button>
+          <p id="up-msg" class="hint">WAV or any common audio format, up to 4 hours. Long recordings are checked in the background.</p>
+        </form>
+        <h2 class="card-head">Recordings <span id="retention" class="count" hidden></span></h2>
+        <ol id="list" class="list rec-list"><li class="empty">No recordings yet.</li></ol>
+      </aside>
+
+      <section id="detail" class="card detail">
+        <div class="empty-detail">
+          <svg width="44" height="44" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="0.9" aria-hidden="true"><path d="M4 2.5h8v11H4z"/><path d="M6 6l1.4 1.4L10 4.8M6 10.5h4"/></svg>
+          <p>Select a recording, or upload one.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      Readback flags possible readback errors for human review. It is decision support, not a certified ATM system.
+    </footer>
+  </div>
 
   <dialog id="report" class="report" aria-labelledby="report-title">
     <div class="report-head">
@@ -78,10 +80,7 @@
     <div id="report-body" class="report-body"></div>
   </dialog>
 
-  <footer class="foot">
-    Readback flags possible readback errors for human review. It is decision support, not a certified ATM system: every alert needs a reviewer's verdict.
-  </footer>
-  <script src="/static/common.js"></script>
-  <script src="/static/review.js"></script>
+  <script src="/static/common.js?v=2"></script>
+  <script src="/static/review.js?v=2"></script>
 </body>
 </html>

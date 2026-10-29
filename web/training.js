@@ -248,7 +248,7 @@ function drawCurve() {
     }
   }
   // grid + axis labels
-  ctx.strokeStyle = "#16241f";
+  ctx.strokeStyle = "#1a2432";
   ctx.lineWidth = 1;
   ctx.fillStyle = css("--muted");
   ctx.font = "11px 'IBM Plex Mono', monospace";
@@ -323,7 +323,7 @@ function onHover(ev) {
   for (const p of points) if (Math.abs(X(p.round) - mx) < Math.abs(X(best.round) - mx)) best = p;
   drawCurve();
   const ctx = canvas.getContext("2d");
-  ctx.strokeStyle = "#3a5249";
+  ctx.strokeStyle = "#3a4a5c";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(X(best.round), canvas._geom.pad.t);

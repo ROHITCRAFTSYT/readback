@@ -302,9 +302,14 @@ def load_scenario(seed: int) -> dict:
     return generate(seed).to_dict()
 
 
+def _page(name: str) -> FileResponse:
+    """An HTML page; browsers revalidate it so an update shows at once (assets are versioned)."""
+    return FileResponse(WEB / name, headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse(WEB / "index.html")
+    return _page("index.html")
 
 
 @app.get("/audio/{path:path}")
@@ -691,12 +696,12 @@ def healthz() -> dict:
 
 @app.get("/training")
 def training_page() -> FileResponse:
-    return FileResponse(WEB / "training.html")
+    return _page("training.html")
 
 
 @app.get("/review")
 def review_page() -> FileResponse:
-    return FileResponse(WEB / "review.html")
+    return _page("review.html")
 
 
 @app.get("/api/training")

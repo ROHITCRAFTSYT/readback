@@ -3,30 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Readback training</title>
+  <title>Readback · Training</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="/static/training.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=2">
+  <link rel="stylesheet" href="/static/training.css?v=2">
 </head>
 <body class="training-page">
-  <header class="bar">
-    <div class="brand">
-      <span class="mark" aria-hidden="true"></span>
-      <div>
-        <h1>Readback</h1>
-        <p>Clearance tagger, training itself</p>
-      </div>
+  <nav class="nav" id="nav" aria-label="Main"></nav>
+
+  <div class="page">
+  <header class="page-head">
+    <div>
+      <h1>Training</h1>
+      <p>Readback's own clearance tagger trains itself on synthetic radio and is tested on real, hand-labeled transmissions.</p>
     </div>
-    <div class="controls">
-      <nav class="tabs">
-        <a class="tab" href="/">Scenario</a>
-        <a class="tab" href="/#live">Live BLR traffic</a>
-        <a class="tab active" href="/training" aria-current="page">Training</a>
-      </nav>
-      <span id="updated" class="clock small">--</span>
-    </div>
+    <div class="head-actions"><span id="updated" class="clock small">--</span></div>
   </header>
 
   <main class="train">
@@ -95,7 +88,8 @@
   <footer class="foot">
     Trained on synthetic transmissions only; the real UWB-ATCC (CC BY-NC-SA 4.0) and ATCO2 transmissions are used only for testing. Refreshes every 20 s.
   </footer>
-  <script src="/static/common.js"></script>
-  <script src="/static/training.js"></script>
+  </div>
+  <script src="/static/common.js?v=2"></script>
+  <script src="/static/training.js?v=2"></script>
 </body>
 </html>

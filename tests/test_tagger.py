@@ -77,8 +77,7 @@ def test_truncate_labels_only_what_can_still_be_heard():
     assert tokens == "0 3 0 csa 1 d z".split()
     assert c == Clearance("csa 1 d z", [])
 
-    tags = ["B-callsign", "I-callsign", "I-callsign", "I-callsign",
-            "B-flight_level", "I-flight_level", "I-flight_level", "I-flight_level", "I-flight_level", "I-flight_level"]  # fmt: skip
+    tags = ["B-callsign"] + ["I-callsign"] * 3 + ["B-flight_level"] + ["I-flight_level"] * 5
     owner = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
     # cut "csa" and half of "one": what is left of the callsign word stays in the callsign
     tokens, c = _cut("csa 1 d z descend flight level 1 0 0", tags, owner, 1, 0.1, 0.1, 2)

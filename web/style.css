@@ -250,7 +250,7 @@ body:not(.recording) .recording-only { display: none; }
   .page-head { padding: 14px 16px 10px; }
   .toolbar { margin: 0 16px; }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 12px 16px 0; }
-  .grid { padding: 12px 16px; }
+  .grid { padding: 12px 16px; flex: 1 0 auto; }
   .scope-wrap { min-height: 80vw; }
   .foot { padding: 10px 16px 16px; }
 }

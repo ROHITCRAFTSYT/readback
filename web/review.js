@@ -174,6 +174,9 @@ function renderDetail() {
   const cols = el("div", "cols");
   const alertsCol = el("section");
   alertsCol.append(el("h3", "", `Alerts (${rec.alerts.length})`));
+  if (rec.alerts.length) {
+    alertsCol.append(el("p", "keys", "Keys: J / K next and previous · C confirm · F false alarm · R reopen · P play · N note · Space pause"));
+  }
   if (!rec.alerts.length) alertsCol.append(el("div", "notice", "No readback problems found in this recording."));
   for (const a of [...rec.alerts].sort((x, y) => x.t - y.t)) alertsCol.append(alertCard(a));
   const txCol = el("section");
@@ -183,6 +186,7 @@ function renderDetail() {
   txCol.append(ol);
   cols.append(alertsCol, txCol);
   box.append(cols);
+  focusIdx = -1;
 }
 
 function seek(t) {
@@ -194,6 +198,7 @@ function seek(t) {
 
 function alertCard(a) {
   const card = el("div", `ra ${a.severity} v-${a.review.verdict}`);
+  card.dataset.index = a.index;
   const meta = el("div", "meta");
   const at = el("span", "seek", `▶ ${fmtTime(a.t)}`);
   at.title = "Play from here";
@@ -237,7 +242,9 @@ async function setVerdict(a, verdict, note, card) {
   });
   if (res.ok) {
     a.review = await res.json();
-    card.replaceWith(alertCard(a));
+    const fresh = alertCard(a);
+    fresh.classList.toggle("current", card.classList.contains("current"));
+    card.replaceWith(fresh);
     loadList();
   } else {
     card.querySelectorAll("button").forEach((b) => { b.disabled = false; });
@@ -309,6 +316,39 @@ async function deleteRecording() {
   $("detail").replaceChildren(el("div", "empty-detail", "Deleted."));
   loadList();
 }
+
+// ---------- keyboard: a reviewer can work through a shift's alerts without the mouse ----------
+let focusIdx = -1; // position of the current alert card in the alerts column
+const alertCards = () => [...document.querySelectorAll("#detail .ra")];
+
+function focusAlert(i) {
+  const cards = alertCards();
+  if (!cards.length) return;
+  focusIdx = Math.max(0, Math.min(cards.length - 1, i));
+  cards.forEach((c, j) => c.classList.toggle("current", j === focusIdx));
+  cards[focusIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (!detail || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest("input, textarea, select, button, audio") || document.querySelector("dialog[open]")) return;
+  const key = e.key.toLowerCase();
+  const card = alertCards()[focusIdx];
+  const a = card && detail.alerts.find((x) => String(x.index) === card.dataset.index);
+  if (key === "j") focusAlert(focusIdx + 1);
+  else if (key === "k") focusAlert(focusIdx - 1);
+  else if (key === " " && $("audio")) {
+    const audio = $("audio");
+    if (audio.paused) audio.play().catch(() => {});
+    else audio.pause();
+  } else if (a && key === "c") setVerdict(a, "confirmed", card.querySelector("textarea").value, card);
+  else if (a && key === "f") setVerdict(a, "false_alarm", card.querySelector("textarea").value, card);
+  else if (a && key === "r") setVerdict(a, "open", card.querySelector("textarea").value, card);
+  else if (a && key === "p") seek(a.t - 8);
+  else if (a && key === "n") card.querySelector("textarea").focus();
+  else return;
+  e.preventDefault();
+});
 
 // ---------- upload ----------
 $("upload").addEventListener("submit", async (e) => {

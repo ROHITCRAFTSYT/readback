@@ -74,7 +74,7 @@ docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
 | `READBACK_DATA` | `./var` (`/data` in Docker) | Where recordings, verdicts and reports are kept (`readback.db` plus `audio/`). Back up this folder. |
 | `READBACK_TOKEN` | (none) | When set, every API and audio request needs this access token. The UI asks for it once and keeps it in an HttpOnly cookie for 12 hours. |
 | `READBACK_RETENTION_DAYS` | `0` (keep) | Delete recordings, with their verdicts and reports, after this many days. |
-| `READBACK_WORKERS` | `2` | Recordings checked at the same time. |
+| `READBACK_WORKERS` | `2` | Recordings checked at the same time. Each job is claimed once, so a check never runs twice. |
 | `READBACK_MAX_UPLOAD_MB` | `500` | Largest upload accepted. |
 | `READBACK_LIVE_CENTER`, `READBACK_LIVE_NAME` | Bengaluru | Centre (`"lat,lon"`) and name of the airspace the Live tab shows. |
 
@@ -202,7 +202,7 @@ Tested on a 43-second real recording from Prague (UWB-ATCC) in which a pilot rea
 
 `/review` is where a unit's quality or safety team works through recordings:
 
-- **Upload** a recording with a name and, optionally, its unit, frequency and the callsigns on frequency. It is checked in the background with a progress bar, so a four-hour shift doesn't hold up the browser. A restart marks unfinished jobs as failed instead of leaving them hanging.
+- **Upload** a recording with a name and, optionally, its unit, frequency and the callsigns on frequency. It is checked in the background with a progress bar, so a four-hour shift doesn't hold up the browser. The upload is kept until its check finishes, so a restart (a deploy, a crash, a power cut) puts unfinished checks back in the queue instead of losing them.
 - **Review** each alert next to the audio. "▶" plays from just before it, and the transmission being played is highlighted in the radio log. Give a verdict (*Confirm*, *False alarm*, or *Reopen*) and a note; the reviewer's name and the time are recorded.
 - **Report**: draft the occurrence report for any alert. The draft is kept with the recording.
 - **Keyboard**: J and K move between alerts, C confirms, F marks a false alarm, R reopens, P plays from the alert, N jumps to the note, and Space pauses. A reviewer can work through a shift without the mouse.

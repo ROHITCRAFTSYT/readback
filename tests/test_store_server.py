@@ -206,11 +206,35 @@ def test_recording_job_review_and_export(client):
     assert client.get(f"/api/recordings/{aid}").status_code == 404
 
 
+def test_restart_requeues_unfinished_checks(client, tmp_path):
+    st = server.store()
+    aid = st.create("night shift", "rules", "IGO961", "VOBL TWR")
+    st.upload(aid).write_bytes(_wav())
+    st.update(aid, status="running", progress=0.6)  # the server stopped mid-check
+    lost = st.create("no upload kept", "rules")
+    st.update(lost, status="running")
+
+    server.configure(tmp_path)  # restart
+    rec = _wait(client, aid)
+    assert rec["status"] == "done" and rec["summary"]["alerts"] == 1 and rec["unit"] == "VOBL TWR"
+    assert not st.upload(aid).exists() and not any(st.uploads.iterdir())
+    assert client.get(f"/api/recordings/{lost}").json()["status"] == "failed"
+    assert not server.store().claim(aid)  # finished jobs can't be taken again
+
+
+def test_store_opens_when_the_app_starts(tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "_STORE", None)
+    monkeypatch.setenv("READBACK_DATA", str(tmp_path))
+    with TestClient(server.app):  # requeued checks start without waiting for a request
+        assert server._STORE is not None and server._STORE.root == tmp_path
+
+
 def test_failed_job_reports_why(client, monkeypatch):
     monkeypatch.setattr(server, "_asr", lambda: FakeASR([]))
     aid = client.post("/api/recordings", content=b"not audio at all").json()["id"]
     rec = _wait(client, aid)
     assert rec["status"] == "failed" and rec["error"]
+    assert not server.store().upload(aid).exists()
 
 
 def test_stored_report_survives_restart(client, tmp_path, monkeypatch):

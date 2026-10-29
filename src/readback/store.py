@@ -4,6 +4,9 @@ alert, and the drafted occurrence reports, in one SQLite file next to the record
 Reviewer verdicts close the loop: the share of alerts confirmed is the precision Readback
 actually achieves on that unit's radio, which no offline benchmark can tell them.
 
+An upload waits under uploads/ until its check finishes, so a restart puts unfinished checks
+back in the queue instead of losing them.
+
 Each recording names its unit (e.g. "LKPR TWR") and frequency (e.g. "118.100"), so one store
 serves several positions, and listings, totals and the alert register can be cut by either.
 """
@@ -60,6 +63,8 @@ class Store:
         self.root = root
         self.audio = root / "audio"
         self.audio.mkdir(parents=True, exist_ok=True)
+        self.uploads = root / "uploads"
+        self.uploads.mkdir(exist_ok=True)
         self._lock = threading.Lock()  # one connection, shared by the job threads
         self._db = sqlite3.connect(root / "readback.db", check_same_thread=False)
         self._db.row_factory = sqlite3.Row
@@ -138,18 +143,44 @@ class Store:
         out["summary"] = json.loads(row["summary"]) if row["summary"] else None
         return out
 
-    def interrupted(self) -> None:
-        """Jobs a restart cut short: mark them failed so nobody waits on them."""
+    def upload(self, aid: str) -> Path:
+        """Where a recording's upload waits until its check finishes."""
+        return self.uploads / f"{aid}.upload"
+
+    def claim(self, aid: str) -> bool:
+        """Take a queued job for this worker; False if another worker already has it."""
+        with self._lock, self._db:
+            cur = self._db.execute(
+                "UPDATE analyses SET status = 'running' WHERE id = ? AND status = 'queued'", (aid,)
+            )
+            return cur.rowcount == 1
+
+    def interrupted(self) -> list[str]:
+        """Jobs a restart cut short. Those whose upload is still here go back in the queue, oldest
+        first, and their ids are returned; the rest are marked failed so nobody waits on them."""
+        rows = self._run(
+            "SELECT id FROM analyses WHERE status IN ('queued', 'running') ORDER BY created"
+        )
+        again = [r["id"] for r in rows if self.upload(r["id"]).exists()]
+        for aid in again:
+            self._run(
+                "UPDATE analyses SET status = 'queued', progress = 0, error = NULL WHERE id = ?",
+                (aid,),
+            )
         self._run(
             "UPDATE analyses SET status = 'failed', error = 'interrupted by a server restart; "
-            "upload the recording again' WHERE status IN ('queued', 'running')"
+            "upload the recording again' WHERE status IN ('queued', 'running') AND id NOT IN "
+            f"({', '.join('?' * len(again))})",
+            tuple(again),
         )
+        return again
 
     def delete(self, aid: str) -> None:
         for table, col in (("reviews", "analysis_id"), ("reports", "analysis_id"),
                            ("analyses", "id")):  # fmt: skip
             self._run(f"DELETE FROM {table} WHERE {col} = ?", (aid,))
         (self.audio / f"{aid}.wav").unlink(missing_ok=True)
+        self.upload(aid).unlink(missing_ok=True)
 
     def purge(self, older_than_days: float) -> list[str]:
         """Delete everything about recordings older than the retention period."""

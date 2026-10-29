@@ -8,7 +8,8 @@ Muse Voice Transcribe (keywords: the callsigns ADS-B shows in range) and the tra
 chosen parser (the tagger, Muse Spark or the rules), as it would on a live frequency. Listening
 needs MODEL_API_KEY in .env; transcripts are cached in results/raw/asr-live/.
 
-Recordings are checked as background jobs and kept, with reviewer verdicts and drafted
+Recordings are checked as background jobs (READBACK_WORKERS at a time; a restart requeues
+unfinished ones) and kept, with reviewer verdicts and drafted
 reports, in a SQLite store under READBACK_DATA (default ./var). Set READBACK_TOKEN to require
 an access token for every /api and audio request, and READBACK_RETENTION_DAYS to delete
 recordings after that many days.
@@ -17,6 +18,7 @@ recordings after that many days.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import csv
 import functools
 import hashlib
@@ -68,7 +70,16 @@ TAGS = [
     {"name": "training", "description": "The tagger's continuous training run."},
     {"name": "system", "description": "Health and sign-in."},
 ]  # fmt: skip
+
+
+@contextlib.asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    store()  # open the store, apply retention and requeue unfinished checks before any request
+    yield
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="Readback",
     version="1.0",
     summary="Catches readback errors between controllers and pilots.",
@@ -91,8 +102,12 @@ def configure(data: Path) -> Store:
     """Open (or create) the store of recordings, verdicts and reports under `data`."""
     global _STORE
     _STORE = Store(data)
-    _STORE.interrupted()
+    again = _STORE.interrupted()
     _purge()
+    for aid in again:  # checks a restart cut short start over from their kept upload
+        JOBS.submit(_run_job, aid)
+    if again:
+        log.info("requeued %d unfinished recordings", len(again))
     return _STORE
 
 
@@ -506,20 +521,35 @@ async def _upload(request: Request) -> bytes:
     return data
 
 
-def _run_job(aid: str, data: bytes, callsigns: list[str], parser: str) -> None:
+def _queue(aid: str, data: bytes) -> None:
+    """Keep the upload until its check finishes, then hand the check to the worker pool."""
+    store().upload(aid).write_bytes(data)
+    JOBS.submit(_run_job, aid)
+
+
+def _run_job(aid: str) -> None:
+    """Check one queued recording. The upload is deleted once the check has finished, whether
+    it worked or not; if the server stops first, the next start queues it again."""
     from readback.recording import RecordingError, analyze
 
     st = store()
-    st.update(aid, status="running")
+    if not st.claim(aid):  # deleted, or another worker has it
+        return
+    rec, upload = st.get(aid), st.upload(aid)
     try:
-        result = analyze(data, _asr(), _parser(parser), callsigns,
+        result = analyze(upload.read_bytes(), _asr(), _parser(rec["parser"]),
+                         rec["callsigns"].split(","),
                          progress=lambda f: st.update(aid, progress=round(f, 3)))  # fmt: skip
     except RecordingError as exc:
         st.update(aid, status="failed", error=str(exc))
+        upload.unlink(missing_ok=True)
         return
     except Exception as exc:
         log.exception("recording %s failed", aid)
         st.update(aid, status="failed", error=f"internal error: {exc}"[:300])
+        upload.unlink(missing_ok=True)
+        return
+    if st.get(aid) is None:  # deleted while it was being checked
         return
     (st.audio / f"{aid}.wav").write_bytes(result["wav"])
     txs = []
@@ -540,6 +570,7 @@ def _run_job(aid: str, data: bytes, callsigns: list[str], parser: str) -> None:
     }
     st.update(aid, status="done", progress=1.0, duration=result["duration"], summary=summary,
               log={"transmissions": txs, "alerts": alerts})  # fmt: skip
+    upload.unlink(missing_ok=True)
     _purge()
 
 
@@ -579,7 +610,7 @@ async def submit_recording(
     data = await _upload(request)
     aid = store().create(name.strip() or time.strftime("Recording %Y-%m-%d %H:%M"), parser,
                          callsigns, unit.strip(), frequency.strip())  # fmt: skip
-    JOBS.submit(_run_job, aid, data, callsigns.split(","), parser)
+    _queue(aid, data)
     return {"id": aid}
 
 
@@ -730,7 +761,8 @@ async def analyze_recording(
     data = await _upload(request)
     aid = store().create(time.strftime("Recording %Y-%m-%d %H:%M"), parser, callsigns,
                          unit.strip(), frequency.strip())  # fmt: skip
-    await asyncio.to_thread(_run_job, aid, data, callsigns.split(","), parser)
+    store().upload(aid).write_bytes(data)
+    await asyncio.to_thread(_run_job, aid)
     rec = _detail(aid)
     if rec["status"] != "done":
         raise HTTPException(400, rec["error"] or "the recording could not be checked")
@@ -800,6 +832,5 @@ def main() -> None:
     import uvicorn
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    store()  # open the store and apply retention before the first request
     host = os.environ.get("READBACK_HOST", "127.0.0.1")
     uvicorn.run("readback.server:app", host=host, port=int(os.environ.get("READBACK_PORT", "8000")))

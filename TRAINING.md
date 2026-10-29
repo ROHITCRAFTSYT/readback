@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** training, round 361, level 3 (real radio: cut-offs, hesitations, misheard words)
+- **State:** training, round 382, level 3 (real radio: cut-offs, hesitations, misheard words)
 - **Champion:** round 248
-- **Trained for:** 15.8 h on 7,145,410 examples (started 2026-10-27, updated 2026-10-29 08:50 UTC)
+- **Trained for:** 16.7 h on 7,560,862 examples (started 2026-10-27, updated 2026-10-29 09:52 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -28,7 +28,7 @@ labeled by hand and frozen on 2026-10-27 before any parser saw them. The
 generator was written without them and is never changed because of them, so this
 is the honest estimate of accuracy on unseen radio. The labels stay local (ATCO2
 terms); `data/gold/atco2-blind-2.manifest.json` holds their hash.
-Generator unchanged since the freeze: **yes**.
+Generator unchanged since the freeze: **no** (see git history).
 
 ATCO2 set 1 was the first blind set. Labeling it showed what the generator was
 missing, so generator v3 was written after it and it is no longer blind. It is
@@ -45,13 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×2.12
-- `noise:truncate` ×1.58
-- `kind:runway` ×1.35
-- `kind:cleared_to_land` ×1.08
-- `noise:distractor` ×1.06
-- `noise:repeat` ×1.05
-- `kind:altitude` ×1.01
+- `noise:truncate` ×1.78
+- `kind:direct_to` ×1.67
+- `kind:cleared_to_land` ×1.61
+- `kind:frequency` ×1.56
+- `noise:misheard` ×1.5
+- `kind:line_up` ×1.19
+- `noise:hesitation` ×1.09
+- `noise:repeat` ×1.09
 
 ## Daily fresh checks
 
@@ -67,18 +68,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 361 | 3 | 96.5% | 98.5% |  |  |
-| 360 | 3 | 96.5% | 97.5% |  |  |
-| 359 | 3 | 96.3% | 96.5% |  |  |
-| 358 | 3 | 96.6% | 97.0% |  |  |
-| 357 | 3 | 96.3% | 98.5% |  |  |
-| 356 | 3 | 96.5% | 96.5% |  |  |
-| 355 | 3 | 96.5% | 98.5% |  |  |
-| 354 | 3 | 96.5% | 98.5% |  |  |
-| 353 | 3 | 96.5% | 98.5% |  |  |
-| 352 | 3 | 96.6% | 97.5% |  |  |
-| 351 | 3 | 96.2% | 98.5% |  |  |
-| 350 | 3 | 96.5% | 98.5% |  |  |
-| 349 | 3 | 96.2% | 98.5% |  |  |
-| 348 | 3 | 96.3% | 98.5% |  |  |
-| 347 | 3 | 96.5% | 98.5% |  |  |
+| 382 | 3 | 96.0% | 97.5% |  |  |
+| 381 | 3 | 96.5% | 98.5% |  |  |
+| 380 | 3 | 96.6% | 98.5% |  |  |
+| 379 | 3 | 96.6% | 98.5% |  |  |
+| 378 | 3 | 96.4% | 98.5% |  |  |
+| 377 | 3 | 96.4% | 98.5% |  |  |
+| 376 | 3 | 96.2% | 98.5% |  |  |
+| 375 | 3 | 96.7% | 96.5% |  |  |
+| 374 | 3 | 96.5% | 99.5% |  |  |
+| 373 | 3 | 96.5% | 98.5% |  |  |
+| 372 | 3 | 96.5% | 98.5% |  |  |
+| 371 | 3 | 96.4% | 98.5% |  |  |
+| 370 | 3 | 96.5% | 98.5% |  |  |
+| 369 | 3 | 96.5% | 99.5% |  |  |
+| 368 | 3 | 96.5% | 99.5% |  |  |

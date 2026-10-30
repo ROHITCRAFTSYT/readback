@@ -1,7 +1,7 @@
 {
   "started": "2026-10-27T09:02:50Z",
   "generator_version": 4,
-  "round": 487,
+  "round": 499,
   "level": 4,
   "levels_passed": [
     {
@@ -23,34 +23,34 @@
   "optimal": true,
   "optimal_since": "2026-10-29T10:07:42Z",
   "lr": 0.000125,
-  "stagnant": 44,
+  "stagnant": 0,
   "focus": {
-    "kind:cleared_to_land": 1.26,
-    "kind:direct_to": 1.31,
-    "kind:frequency": 1.28,
-    "kind:hold_short": 2.01,
-    "kind:line_up": 1.36,
-    "kind:runway": 1.62,
-    "noise:hesitation": 1.0,
-    "noise:misheard": 1.09,
-    "noise:repeat": 1.42,
-    "noise:truncate": 1.23
+    "kind:cleared_for_takeoff": 1.08,
+    "kind:cleared_to_land": 1.51,
+    "kind:direct_to": 1.07,
+    "kind:heading": 1.26,
+    "kind:hold_short": 1.95,
+    "kind:line_up": 1.59,
+    "kind:squawk": 1.21,
+    "noise:hesitation": 1.11,
+    "noise:repeat": 1.29,
+    "noise:truncate": 1.25
   },
-  "examples_seen": 9617680,
-  "train_seconds": 75753.7,
+  "examples_seen": 9851728,
+  "train_seconds": 79657.2,
   "champion": {
-    "round": 443,
+    "round": 499,
     "val": {
       "n": 2000,
-      "exact": 0.9785,
+      "exact": 0.9805,
       "item_precision": 0.9939,
-      "item_recall": 0.9943,
-      "item_f1": 0.9941,
-      "callsign": 0.989,
+      "item_recall": 0.9955,
+      "item_f1": 0.9947,
+      "callsign": 0.9905,
       "kind_f1": {
         "altitude": 1.0,
-        "cleared_for_takeoff": 0.988,
-        "cleared_to_land": 0.985,
+        "cleared_for_takeoff": 0.992,
+        "cleared_to_land": 0.987,
         "direct_to": 0.993,
         "flight_level": 1.0,
         "frequency": 0.99,
@@ -60,26 +60,26 @@
         "qnh": 1.0,
         "runway": 0.983,
         "speed": 1.0,
-        "squawk": 0.997
+        "squawk": 1.0
       }
     },
     "gold_dev": {
       "n": 149,
-      "exact": 0.906,
-      "item_precision": 0.9706,
-      "item_recall": 0.9802,
-      "item_f1": 0.9754,
+      "exact": 0.8993,
+      "item_precision": 0.9703,
+      "item_recall": 0.9703,
+      "item_f1": 0.9703,
       "callsign": 0.9262,
       "kind_f1": {
         "altitude": 1.0,
         "cleared_for_takeoff": 1.0,
-        "cleared_to_land": 0.927,
+        "cleared_to_land": 0.95,
         "flight_level": 1.0,
         "frequency": 1.0,
         "hold_short": 0.933,
-        "line_up": 1.0,
+        "line_up": 0.974,
         "qnh": 1.0,
-        "runway": 0.952
+        "runway": 0.9
       }
     },
     "gold_test": {
@@ -104,34 +104,34 @@
     },
     "blind": {
       "n": 263,
-      "exact": 0.8441,
-      "item_precision": 0.9162,
-      "item_recall": 0.9444,
-      "item_f1": 0.9301,
-      "callsign": 0.8973,
+      "exact": 0.8365,
+      "item_precision": 0.8988,
+      "item_recall": 0.9321,
+      "item_f1": 0.9152,
+      "callsign": 0.8935,
       "kind_f1": {
         "altitude": 0.957,
-        "cleared_for_takeoff": 1.0,
+        "cleared_for_takeoff": 0.9,
         "cleared_to_land": 0.963,
         "direct_to": 0.5,
-        "flight_level": 1.0,
+        "flight_level": 0.957,
         "frequency": 0.919,
         "heading": 1.0,
         "hold_short": 0.75,
         "line_up": 0.933,
         "qnh": 1.0,
-        "runway": 0.907,
+        "runway": 0.881,
         "speed": 1.0,
         "squawk": 1.0
       }
     },
     "atco2_seen": {
       "n": 265,
-      "exact": 0.8566,
-      "item_precision": 0.9286,
-      "item_recall": 0.9533,
-      "item_f1": 0.9408,
-      "callsign": 0.8981,
+      "exact": 0.8604,
+      "item_precision": 0.929,
+      "item_recall": 0.96,
+      "item_f1": 0.9443,
+      "callsign": 0.9019,
       "kind_f1": {
         "altitude": 0.923,
         "cleared_for_takeoff": 0.727,
@@ -141,7 +141,7 @@
         "frequency": 0.973,
         "heading": 0.889,
         "hold_short": 0.941,
-        "line_up": 0.818,
+        "line_up": 0.87,
         "qnh": 1.0,
         "runway": 0.987,
         "speed": 1.0,
@@ -335,7 +335,7 @@
       }
     }
   },
-  "updated": "2026-10-29T16:47:51Z",
+  "updated": "2026-10-30T13:44:32Z",
   "reported_sets": {
     "blind": "dc90df80264b",
     "atco2_seen": "1fe59166f67d"

@@ -6,19 +6,19 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 487, level 4 (stress: every kind of noise at once)
-- **Champion:** round 443
-- **Trained for:** 21.0 h on 9,617,680 examples (started 2026-10-27, updated 2026-10-29 16:47 UTC)
+- **State:** optimal, round 499, level 4 (stress: every kind of noise at once)
+- **Champion:** round 499
+- **Trained for:** 22.1 h on 9,851,728 examples (started 2026-10-27, updated 2026-10-30 13:44 UTC)
 
 ## Champion vs the rule-based parser
 
 | Test | Tagger exact | Rules exact | Tagger item F1 | Rules item F1 |
 |---|---|---|---|---|
-| **Blind: ATCO2 set 2, 7 airports** (n=263) | 84.4% | 34.6% | 93.0% | 86.6% |
-| ATCO2 set 1 (retired, not blind) (n=265) | 85.7% | 36.6% | 94.1% | 85.4% |
+| **Blind: ATCO2 set 2, 7 airports** (n=263) | 83.7% | 34.6% | 91.5% | 86.6% |
+| ATCO2 set 1 (retired, not blind) (n=265) | 86.0% | 36.6% | 94.4% | 85.4% |
 | Real radio, held-out half (n=138) | 89.1% | 67.4% | 98.1% | 87.4% |
-| Real radio, dev half (n=149) | 90.6% | 78.5% | 97.5% | 86.3% |
-| Synthetic level 4 (n=2000) | 97.9% | 16.1% | 99.4% | 67.3% |
+| Real radio, dev half (n=149) | 89.9% | 78.5% | 97.0% | 86.3% |
+| Synthetic level 4 (n=2000) | 98.0% | 16.1% | 99.5% | 67.3% |
 
 *Exact*: callsign and every item right. *Item F1*: over (kind, value) pairs. The real
 transmissions are 287 UWB-ATCC clips from Prague, labeled by hand (`data/gold/`); the held-out half never influences training.
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×2.01
-- `kind:runway` ×1.62
-- `noise:repeat` ×1.42
-- `kind:line_up` ×1.36
-- `kind:direct_to` ×1.31
-- `kind:frequency` ×1.28
-- `kind:cleared_to_land` ×1.26
-- `noise:truncate` ×1.23
+- `kind:hold_short` ×1.95
+- `kind:line_up` ×1.59
+- `kind:cleared_to_land` ×1.51
+- `noise:repeat` ×1.29
+- `kind:heading` ×1.26
+- `noise:truncate` ×1.25
+- `kind:squawk` ×1.21
+- `noise:hesitation` ×1.11
 
 ## Daily fresh checks
 
@@ -63,23 +63,24 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2026-10-27 | 22 | 96.5% | 97.2% | – |
 | 2026-10-28 | 109 | 96.0% | 98.1% | 92.4% |
 | 2026-10-29 | 248 | 96.5% | 97.6% | 91.8% |
+| 2026-10-30 | 499 | 98.2% | 98.1% | 91.5% |
 
 ## Recent rounds
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 499 | 4 | 98.0% | 97.0% | yes |  |
+| 498 | 4 | 97.4% | 96.5% |  |  |
+| 497 | 4 | 97.6% | 97.0% |  |  |
+| 496 | 4 | 97.6% | 97.0% |  |  |
+| 495 | 4 | 97.5% | 96.5% |  |  |
+| 494 | 4 | 97.5% | 97.0% |  |  |
+| 493 | 4 | 97.7% | 97.5% |  |  |
+| 492 | 4 | 97.4% | 98.5% |  |  |
+| 491 | 4 | 97.8% | 97.5% |  |  |
+| 490 | 4 | 97.8% | 99.0% |  |  |
+| 489 | 4 | 97.7% | 96.5% |  |  |
+| 488 | 4 | 97.5% | 98.0% |  |  |
 | 487 | 4 | 97.8% | 97.5% |  |  |
 | 486 | 4 | 97.9% | 96.1% |  |  |
 | 485 | 4 | 97.5% | 97.5% |  |  |
-| 484 | 4 | 97.7% | 96.5% |  |  |
-| 483 | 4 | 97.7% | 96.5% |  |  |
-| 482 | 4 | 97.5% | 97.1% |  |  |
-| 481 | 4 | 97.4% | 96.1% |  |  |
-| 480 | 4 | 97.8% | 97.1% |  |  |
-| 479 | 4 | 97.8% | 96.5% |  |  |
-| 478 | 4 | 97.4% | 95.6% |  |  |
-| 477 | 4 | 97.5% | 95.6% |  |  |
-| 476 | 4 | 97.5% | 97.5% |  |  |
-| 475 | 4 | 97.5% | 97.0% |  |  |
-| 474 | 4 | 97.5% | 98.0% |  |  |
-| 473 | 4 | 97.6% | 96.5% |  |  |

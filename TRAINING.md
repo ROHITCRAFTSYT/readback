@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 577, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 585, level 4 (stress: every kind of noise at once)
 - **Champion:** round 499
-- **Trained for:** 24.9 h on 11,377,540 examples (started 2026-10-27, updated 2026-10-30 16:50 UTC)
+- **Trained for:** 25.8 h on 11,533,720 examples (started 2026-10-27, updated 2026-10-31 13:47 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,13 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×1.86
-- `kind:frequency` ×1.84
-- `kind:cleared_to_land` ×1.71
-- `noise:truncate` ×1.48
-- `kind:hold_short` ×1.42
-- `kind:line_up` ×1.26
-- `noise:misheard` ×1.23
-- `noise:hesitation` ×1.19
+- `kind:cleared_to_land` ×2.0
+- `kind:cleared_for_takeoff` ×1.43
+- `kind:hold_short` ×1.43
+- `noise:truncate` ×1.37
+- `noise:repeat` ×1.35
+- `kind:direct_to` ×1.24
+- `kind:frequency` ×1.15
 
 ## Daily fresh checks
 
@@ -64,11 +63,20 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2026-10-28 | 109 | 96.0% | 98.1% | 92.4% |
 | 2026-10-29 | 248 | 96.5% | 97.6% | 91.8% |
 | 2026-10-30 | 499 | 98.2% | 98.1% | 91.5% |
+| 2026-10-31 | 499 | 98.6% | 98.1% | 91.5% |
 
 ## Recent rounds
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 585 | 4 | 97.7% | 96.5% |  |  |
+| 584 | 4 | 97.8% | 95.6% |  |  |
+| 583 | 4 | 97.5% | 97.0% |  |  |
+| 582 | 4 | 97.5% | 97.0% |  |  |
+| 581 | 4 | 97.7% | 97.5% |  |  |
+| 580 | 4 | 97.7% | 97.5% |  |  |
+| 579 | 4 | 97.6% | 97.1% |  |  |
+| 578 | 4 | 97.8% | 96.5% |  |  |
 | 577 | 4 | 97.7% | 96.5% |  |  |
 | 576 | 4 | 97.7% | 96.5% |  |  |
 | 575 | 4 | 98.0% | 94.6% |  |  |
@@ -76,11 +84,3 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 573 | 4 | 97.7% | 97.0% |  |  |
 | 572 | 4 | 97.7% | 96.5% |  |  |
 | 571 | 4 | 97.8% | 97.0% |  |  |
-| 570 | 4 | 97.6% | 96.1% |  |  |
-| 569 | 4 | 97.7% | 96.5% |  |  |
-| 568 | 4 | 97.5% | 96.5% |  |  |
-| 567 | 4 | 97.8% | 97.5% |  |  |
-| 566 | 4 | 97.7% | 95.6% |  |  |
-| 565 | 4 | 97.8% | 98.0% |  |  |
-| 564 | 4 | 97.8% | 96.0% |  |  |
-| 563 | 4 | 97.7% | 98.5% |  |  |

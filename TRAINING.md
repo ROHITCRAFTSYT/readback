@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 757, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 782, level 4 (stress: every kind of noise at once)
 - **Champion:** round 499
-- **Trained for:** 32.2 h on 14,898,034 examples (started 2026-10-27, updated 2026-11-01 10:58 UTC)
+- **Trained for:** 33.1 h on 15,387,472 examples (started 2026-10-27, updated 2026-11-01 12:00 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,12 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×2.38
-- `noise:truncate` ×1.52
-- `kind:hold_short` ×1.37
-- `kind:direct_to` ×1.34
-- `kind:line_up` ×1.34
-- `noise:misheard` ×1.16
-- `kind:speed` ×1.13
-- `kind:frequency` ×1.11
+- `kind:hold_short` ×3.47
+- `kind:cleared_to_land` ×1.85
+- `noise:repeat` ×1.44
+- `noise:truncate` ×1.34
+- `kind:direct_to` ×1.16
+- `kind:runway` ×1.14
 
 ## Daily fresh checks
 
@@ -71,18 +69,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 757 | 4 | 97.5% | 99.0% |  |  |
-| 756 | 4 | 97.5% | 98.0% |  |  |
-| 755 | 4 | 97.8% | 97.1% |  |  |
-| 754 | 4 | 97.5% | 96.1% |  |  |
-| 753 | 4 | 97.7% | 97.5% |  |  |
-| 752 | 4 | 97.7% | 96.5% |  |  |
-| 751 | 4 | 97.8% | 98.5% |  |  |
-| 750 | 4 | 97.7% | 96.5% |  |  |
-| 749 | 4 | 97.6% | 96.1% |  |  |
-| 748 | 4 | 97.8% | 96.0% |  |  |
-| 747 | 4 | 97.7% | 96.1% |  |  |
-| 746 | 4 | 97.5% | 96.0% |  |  |
-| 745 | 4 | 97.5% | 97.5% |  |  |
-| 744 | 4 | 97.8% | 95.1% |  |  |
-| 743 | 4 | 97.7% | 95.6% |  |  |
+| 782 | 4 | 97.9% | 96.5% |  |  |
+| 781 | 4 | 97.9% | 96.5% |  |  |
+| 780 | 4 | 97.5% | 98.0% |  |  |
+| 779 | 4 | 97.7% | 96.1% |  |  |
+| 778 | 4 | 97.7% | 95.5% |  |  |
+| 777 | 4 | 97.7% | 97.5% |  |  |
+| 776 | 4 | 97.5% | 97.5% |  |  |
+| 775 | 4 | 97.8% | 97.0% |  |  |
+| 774 | 4 | 97.8% | 96.5% |  |  |
+| 773 | 4 | 97.8% | 97.5% |  |  |
+| 772 | 4 | 97.4% | 97.1% |  |  |
+| 771 | 4 | 97.8% | 96.0% |  |  |
+| 770 | 4 | 97.7% | 96.5% |  |  |
+| 769 | 4 | 97.7% | 96.5% |  |  |
+| 768 | 4 | 97.8% | 96.0% |  |  |

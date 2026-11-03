@@ -155,6 +155,23 @@ class AgentError(RuntimeError):
     pass
 
 
+def _bad_types(report: dict) -> list[str]:
+    """Fields of a submitted report whose type is wrong: the model's tool arguments are not
+    checked against the schema, and the markdown needs them right."""
+    bad = [k for k in ("title", "occurrence_type", "risk", "summary", "evidence_quality")
+           if not isinstance(report[k], str)]  # fmt: skip
+    timeline = report["timeline"]
+    if not isinstance(timeline, list) or not all(
+        isinstance(e, dict) and isinstance(e.get("time"), str) and isinstance(e.get("event"), str)
+        for e in timeline
+    ):
+        bad.append("timeline")
+    for k in ("contributing_factors", "recommended_actions"):
+        if not isinstance(report[k], list) or not all(isinstance(x, str) for x in report[k]):
+            bad.append(k)
+    return bad
+
+
 def investigate(chat, log: Log, alert: dict, max_steps: int = 8) -> dict:
     """Run the agent on one alert. Returns {"report": ..., "trace": [tool calls]}."""
     tools = {
@@ -189,16 +206,23 @@ def investigate(chat, log: Log, alert: dict, max_steps: int = 8) -> dict:
                 args = json.loads(call["function"].get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {}
+            if not isinstance(args, dict):
+                args = {}
             if name == "submit_report":
                 missing = [k for k in REPORT_SCHEMA["required"] if k not in args]
-                if not missing:
+                bad = [] if missing else _bad_types(args)
+                if not missing and not bad:
                     return {"report": args, "trace": trace}
-                result: object = {"error": f"missing fields: {missing}"}
+                result: object = {"error": f"missing fields: {missing}"} if missing else {
+                    "error": f"wrong types for {bad}: timeline is a list of {{time, event}} "
+                    "objects, contributing_factors and recommended_actions are lists of "
+                    "strings, every other field is a string"
+                }  # fmt: skip
             elif name in tools:
                 try:
                     result = tools[name](**args)
-                except TypeError as exc:
-                    result = {"error": str(exc)}
+                except Exception as exc:  # a bad argument goes back to the model to correct
+                    result = {"error": f"{type(exc).__name__}: {exc}"}
                 trace.append({"tool": name, "args": args})
             else:
                 result = {"error": f"unknown tool {name}"}

@@ -84,8 +84,19 @@ def render(state_dir: Path) -> str:
             "generator was written without them and is never changed because of them, so this",
             "is the honest estimate of accuracy on unseen radio. The labels stay local (ATCO2",
             "terms); `data/gold/atco2-blind-2.manifest.json` holds their hash.",
-            "Generator unchanged since the freeze: "
-            + ("**yes**." if blind["generator_unchanged"] else "**no** (see git history)."),
+            "Generator changed since the freeze: "
+            + (
+                "**no**."
+                if blind["generator_unchanged"]
+                else f"**yes**, now v{st.get('generator_version', '?')}"
+                # Only v4's provenance is documented; a later version gets no such claim.
+                + (
+                    ", from synthetic validation mistakes only"
+                    if st.get("generator_version") == 4
+                    else ""
+                )
+                + " (see the README and git history)."
+            ),
             "",
         ]
     if "atco2_seen" in champ:

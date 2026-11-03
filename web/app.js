@@ -8,12 +8,14 @@ const color = (name) => css.getPropertyValue(name).trim();
 const C = {
   scope: color("--scope"), ring: color("--ring"), phosphor: color("--phosphor"),
   dim: color("--phosphor-dim"), err: color("--err"), warn: color("--warn"), muted: color("--muted"),
+  accent: color("--accent"),
 };
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 const RANGE_NM = 45;
 const TRAIL = 8;
 let center = [13.1986, 77.7066];
-let aircraft = new Map(); // icao24 -> {callsign, canonical, sv, trail, cleared, alert, alertUntil}
+let aircraft = new Map(); // icao24 -> {callsign, canonical, sv, trail, cleared, alert, alertUntil, focusUntil}
 let roster = []; // [{callsign, canonical}]
 let source = null;
 let liveTimer = null;
@@ -22,7 +24,13 @@ let stats = { tx: 0, err: 0, track: 0, warn: 0 };
 let parserName = "tagger";
 let sessionId = null; // the server's record of this replay or recording, for reports
 let museOK = false;
-const PARSERS = { tagger: "tagger", spark: "Muse Spark", glimmer: "Muse Glimmer", rules: "rules" };
+let runId = 0; // bumped by reset(), so a replay or recording check that was overtaken stops
+let txs = []; // [{t, callsign, id, el}] in arrival order, for locating an alert's transmission
+let alertEls = new Map(); // alert index -> {alert, li}
+let unacked = []; // streamed error alerts not yet acknowledged, oldest first
+const PARSERS = {
+  tagger: "Tagger (on-prem)", spark: "Muse Spark", glimmer: "Muse Glimmer (fine-tuned)", rules: "Rules",
+};
 
 // ---------- callsign matching (mirrors readback.compare.same_callsign) ----------
 function tail(cs) {
@@ -119,7 +127,7 @@ function drawAircraft(w, h, now) {
     const sv = ac.sv;
     const alerting = ac.alertUntil > now;
     const col = alerting ? (ac.alert === "error" ? C.err : C.warn) : C.phosphor;
-    const blink = alerting && ac.alert === "error" && Math.floor(now / 400) % 2 === 0;
+    const blink = alerting && ac.alert === "error" && (reducedMotion.matches || Math.floor(now / 400) % 2 === 0);
 
     ac.trail.forEach(([lat, lon], i) => {
       const [x, y] = project(lat, lon, w, h);
@@ -129,6 +137,15 @@ function drawAircraft(w, h, now) {
     });
     ctx.globalAlpha = 1;
 
+    if (ac.focusUntil > now) {
+      // Located from an alert card: a ring around the blip, pulsing unless motion is reduced.
+      const r = reducedMotion.matches ? 16 : 13 + 5 * Math.abs(Math.sin(now / 250));
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.strokeStyle = col;
     ctx.lineWidth = blink ? 2.5 : 1.5;
     ctx.strokeRect(x - 4, y - 4, 8, 8);
@@ -182,6 +199,24 @@ function fmtTime(t) {
   const s = Math.max(0, Math.round(t));
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
+// Mirrors readback.monitor.describe for the values readback alerts carry.
+function describe(kind, value) {
+  const v = String(value);
+  if (kind === "flight_level") return /^\d+$/.test(v) ? `FL${v.padStart(3, "0")}` : `FL${v}`;
+  if (kind === "callsign") {
+    const t = v.split(" ").filter(Boolean);
+    return t.length && t[0].length > 1 ? `${t[0]} ${t.slice(1).join("")}`.toUpperCase() : t.join("").toUpperCase();
+  }
+  const fmt = {
+    altitude: `${v} ft`, heading: `heading ${v}`, speed: `${v} kt`, squawk: `squawk ${v}`,
+    frequency: `${v} MHz`, qnh: `QNH ${v}`, runway: `runway ${v.toUpperCase()}`,
+    cleared_to_land: `cleared to land ${v.toUpperCase()}`.trim(),
+    cleared_for_takeoff: `cleared for takeoff ${v.toUpperCase()}`.trim(),
+    line_up: `line up ${v.toUpperCase()}`.trim(), hold_short: `hold short ${v.toUpperCase()}`.trim(),
+    direct_to: `direct ${v.toUpperCase()}`,
+  };
+  return fmt[kind] || `${kind} ${v}`;
+}
 function clearList(id, empty) {
   $(id).innerHTML = `<li class="empty">${empty}</li>`;
 }
@@ -218,6 +253,15 @@ function onTx(tx) {
   text.className = "text";
   text.textContent = tx.asr_error ? "(not transcribed)" : tx.text;
   li.append(head, text);
+  if (tx.parse_error) {
+    const via = document.createElement("div");
+    via.className = "via";
+    const s = document.createElement("span");
+    s.className = "fail";
+    s.textContent = `${PARSERS[parserName]} failed: ${tx.parse_error}`;
+    via.append(s);
+    li.append(via);
+  }
   if (tx.script != null) {
     // Listening: show the script when the transcript differs, and what each step took.
     const words = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).join(" ");
@@ -254,6 +298,7 @@ function onTx(tx) {
     li.append(chips);
   }
   prepend("radio", li);
+  txs.push({ t: tx.t, callsign: tx.callsign, id: tx.id, el: li });
 
   if (tx.role === "controller" && tx.callsign) {
     const ac = aircraftFor(tx.callsign);
@@ -291,7 +336,31 @@ function upsert(sv) {
   ac.sv = sv;
 }
 
-function onAlert(alert) {
+// Expected and heard under the message: what was cleared, and what was read back or flown.
+function expectedHeard(alert) {
+  if (!alert.expected && !alert.heard) return null;
+  const track = alert.source === "track";
+  const show = (v) => (!v ? "nothing" : track ? v : describe(alert.kind, v));
+  const labels = track ? ["Cleared", "Flying"] : alert.kind === "callsign" ? ["Sent to", "Read back by"] : ["Cleared", "Read back"];
+  const row = document.createElement("div");
+  row.className = "eh";
+  for (const [label, value, cls] of [
+    [labels[0], alert.expected, "v"],
+    [labels[1], alert.heard, "v heard"],
+  ]) {
+    const k = document.createElement("span");
+    k.className = "k";
+    k.textContent = label;
+    const v = document.createElement("span");
+    v.className = cls;
+    v.textContent = show(value);
+    row.append(k, v);
+  }
+  return row;
+}
+
+// streamed: the alert arrived live from a replay, so it can raise the banner and the chime.
+function onAlert(alert, streamed = false) {
   if (alert.severity === "error") {
     if (alert.source === "track") stats.track += 1;
     else stats.err += 1;
@@ -299,21 +368,39 @@ function onAlert(alert) {
     stats.warn += 1;
   }
   const li = document.createElement("li");
-  li.className = `alert ${alert.severity}`;
+  li.className = `alert ${alert.severity} locatable`;
+  li.tabIndex = 0;
+  li.title = "Show its transmission and aircraft";
+  if (alert.index != null) li.dataset.index = alert.index;
   const kind = alert.kind.replaceAll("_", " ");
   li.innerHTML = `<div class="meta"><span>${fmtTime(alert.t)}</span><span class="sev">${alert.severity}</span><span>${alert.source} · ${kind}</span></div>`;
   const msg = document.createElement("div");
   msg.className = "msg";
   msg.textContent = alert.message;
   li.append(msg);
+  const eh = expectedHeard(alert);
+  if (eh) li.append(eh);
   if (museOK && sessionId && alert.index != null) {
     const btn = document.createElement("button");
     btn.className = "draft";
     btn.textContent = "Draft occurrence report";
-    btn.addEventListener("click", () => draftReport(sessionId, alert.index, btn));
+    const sid = sessionId;
+    btn.addEventListener("click", (e) => { e.stopPropagation(); draftReport(sid, alert.index, btn); });
     li.append(btn);
   }
+  const entry = { alert, li };
+  li.addEventListener("click", () => locate(entry));
+  li.addEventListener("keydown", (e) => {
+    if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); locate(entry); }
+  });
   prepend("alerts", li);
+  if (alert.index != null) alertEls.set(alert.index, entry);
+  if (streamed && alert.severity === "error") {
+    li.classList.add("unack");
+    unacked.push(entry);
+    renderPriority();
+    chime();
+  }
 
   const ac = aircraftFor(alert.callsign);
   if (ac) {
@@ -325,6 +412,176 @@ function onAlert(alert) {
     if (line) line.classList.add("flagged");
   }
   setStats();
+}
+
+// The transmission behind an alert: its ref when the line is on the list, otherwise the latest
+// transmission from the same callsign at or before the alert time.
+function txFor(alert) {
+  const byRef = alert.ref && txs.find((x) => x.id === alert.ref);
+  if (byRef) return byRef;
+  let best = null;
+  for (const x of txs) if (x.t <= alert.t + 0.01 && sameCallsign(x.callsign, alert.callsign)) best = x;
+  return best;
+}
+
+// Scroll a list item into view inside its own list, without moving the page.
+function showInList(el) {
+  const list = el.parentElement;
+  const l = list.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const behavior = reducedMotion.matches ? "auto" : "smooth";
+  if (r.top < l.top) list.scrollBy({ top: r.top - l.top - 6, behavior });
+  else if (r.bottom > l.bottom) list.scrollBy({ top: r.bottom - l.bottom + 6, behavior });
+}
+
+let locatedTimer = null;
+function locate(entry) {
+  document.querySelectorAll(".alert.selected, .tx.located").forEach((el) => el.classList.remove("selected", "located"));
+  entry.li.classList.add("selected");
+  showInList(entry.li);
+  const tx = txFor(entry.alert);
+  if (tx) {
+    void tx.el.offsetWidth; // restart the highlight animation when the same line is located twice
+    tx.el.classList.add("located");
+    showInList(tx.el);
+    clearTimeout(locatedTimer);
+    locatedTimer = setTimeout(() => tx.el.classList.remove("located"), 4000);
+  }
+  const ac = aircraftFor(entry.alert.callsign);
+  if (ac) ac.focusUntil = performance.now() + 4000;
+}
+
+// ---------- unacknowledged errors: banner, count, chime ----------
+function renderPriority() {
+  const n = unacked.length;
+  $("priority").hidden = n === 0;
+  $("unack-count").hidden = n === 0;
+  $("unack-count").textContent = `${n} new`;
+  $("unack-count").title = `${n} error${n === 1 ? "" : "s"} not acknowledged`;
+  document.title = `${n ? `(${n}) ` : ""}Readback · Monitor`;
+  if (!n) return;
+  const { alert } = unacked[n - 1];
+  $("priority-kind").textContent = alert.source === "track" ? "Track deviation" : "Readback error";
+  $("priority-cs").textContent = alert.callsign ? describe("callsign", alert.callsign) : "";
+  $("priority-msg").textContent = alert.message;
+  $("priority-ack").textContent =
+    `Click or press A or Enter to acknowledge${n > 1 ? ` · ${n - 1} more unacknowledged` : ""}`;
+}
+
+function acknowledge() {
+  const entry = unacked.pop();
+  if (!entry) return;
+  entry.li.classList.remove("unack");
+  renderPriority();
+}
+
+$("priority").addEventListener("click", () => {
+  const entry = unacked[unacked.length - 1];
+  if (entry) locate(entry);
+  acknowledge();
+});
+document.addEventListener("keydown", (e) => {
+  if (!unacked.length || e.ctrlKey || e.metaKey || e.altKey || $("report").open) return;
+  if (e.target.closest && e.target.closest("input, select, textarea, [contenteditable]")) return;
+  // Enter acknowledges when nothing else has focus, or when focus is still on Play / Run demo
+  // after starting the replay (pressing it there would otherwise restart the replay).
+  const enter = e.key === "Enter" &&
+    (e.target === document.body || e.target === document.documentElement ||
+     e.target === $("play") || e.target === $("demo"));
+  if (e.key === "a" || e.key === "A" || enter) {
+    e.preventDefault();
+    acknowledge();
+  }
+});
+
+// Optional two-tone chime for error alerts, off unless the user turns it on.
+const CHIME_KEY = "readback.chime";
+let audioCtx = null;
+let lastChime = 0;
+try { $("chime").checked = localStorage.getItem(CHIME_KEY) === "on"; } catch { /* storage blocked */ }
+$("chime").addEventListener("change", () => {
+  try { localStorage.setItem(CHIME_KEY, $("chime").checked ? "on" : "off"); } catch { /* storage blocked */ }
+  if ($("chime").checked) chime(true);
+});
+function chime(force = false) {
+  if (!$("chime").checked) return;
+  const now = performance.now();
+  if (!force && now - lastChime < 1500) return; // one chime for a burst of alerts
+  lastChime = now;
+  try {
+    audioCtx = audioCtx || new AudioContext();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t0 = audioCtx.currentTime;
+    for (const [i, hz] of [[0, 880], [1, 660]]) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = hz;
+      const start = t0 + i * 0.18;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.17);
+    }
+  } catch { /* no WebAudio here */ }
+}
+
+// ---------- scorecard ----------
+function renderScore(score) {
+  const card = $("scorecard");
+  card.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "sc-head";
+  const title = document.createElement("b");
+  title.textContent = `Caught ${score.caught} of ${score.planted} planted problems`;
+  const close = document.createElement("button");
+  close.className = "sc-close";
+  close.type = "button";
+  close.setAttribute("aria-label", "Close result");
+  close.textContent = "×";
+  close.addEventListener("click", () => { card.hidden = true; });
+  head.append(title, close);
+
+  const sum = document.createElement("div");
+  sum.className = "sc-sum";
+  const missed = score.planted - score.caught;
+  const stat = (n, label, cls) => {
+    const s = document.createElement("span");
+    s.innerHTML = `<span class="n ${cls}">${n}</span> ${label}`;
+    sum.append(s);
+  };
+  stat(score.caught, "caught", "ok");
+  stat(missed, "missed", missed ? "err" : "");
+  stat(score.false_errors, `false error alert${score.false_errors === 1 ? "" : "s"}`, score.false_errors ? "err" : "");
+  if (score.unmatched_warnings) stat(score.unmatched_warnings, "unplanted warnings", "");
+
+  const list = document.createElement("ol");
+  for (const lb of [...score.labels].sort((a, b) => Number(a.caught) - Number(b.caught) || a.t - b.t)) {
+    const li = document.createElement("li");
+    const entry = lb.alert_index != null ? alertEls.get(lb.alert_index) : null;
+    const row = document.createElement(entry ? "button" : "div");
+    if (entry) {
+      row.type = "button";
+      row.title = "Show the alert that caught it";
+      row.addEventListener("click", () => locate(entry));
+    }
+    const st = document.createElement("span");
+    st.className = `st ${lb.caught ? "caught" : "missed"}`;
+    st.textContent = lb.caught ? "Caught" : "Missed";
+    const at = document.createElement("span");
+    at.textContent = fmtTime(lb.t);
+    const what = document.createElement("span");
+    what.className = "what";
+    const d = lb.caught && lb.delay_s != null ? Math.round(lb.delay_s) : null;
+    const delay = d == null ? "" : d < 0 ? ` · ${-d} s early` : ` · after ${d} s`;
+    const cs = lb.callsign ? `${lb.callsign} · ` : "";
+    what.textContent = `${cs}${lb.detail || lb.kind.replaceAll("_", " ")}${delay}`;
+    row.append(st, at, what);
+    li.append(row);
+    list.append(li);
+  }
+  card.append(head, sum, list);
+  card.hidden = false;
 }
 
 // ---------- occurrence reports ----------
@@ -354,7 +611,14 @@ async function analyzeRecording() {
   const file = $("rec-file").files[0];
   if (!file) { $("scope-note").textContent = "Choose an audio file first."; return; }
   reset();
-  museOK = (await fetch("/healthz").then((r) => r.json())).muse;
+  const mine = runId; // a mode switch or a new check makes this one stop writing
+  try {
+    museOK = (await fetch("/healthz").then((r) => r.json())).muse;
+  } catch {
+    if (mine === runId) $("scope-note").textContent = "Cannot reach the Readback server.";
+    return;
+  }
+  if (mine !== runId) return;
   if (!museOK) { $("scope-note").textContent = "Checking recordings needs MODEL_API_KEY on the server."; return; }
   parserName = $("parser").value;
   $("analyze").disabled = true;
@@ -363,15 +627,18 @@ async function analyzeRecording() {
     const q = new URLSearchParams({ name: file.name, callsigns: $("rec-cs").value, parser: parserName });
     const res = await api(`/api/recordings?${q}`, { method: "POST", body: file });
     const queued = await res.json();
+    if (mine !== runId) return;
     if (!res.ok) throw new Error(queued.detail || res.statusText);
     let data;
     for (;;) {  // checked in the background; long recordings take a while
       data = await api(`/api/recordings/${queued.id}`).then((r) => r.json());
+      if (mine !== runId) return;
       if (data.status === "done") break;
       if (data.status === "failed") throw new Error(data.error);
       $("scope-note").textContent =
         `Transcribing ${file.name} with Voice Transcribe: ${Math.round(data.progress * 100)}% …`;
       await new Promise((r) => setTimeout(r, 1500));
+      if (mine !== runId) return;
     }
     sessionId = data.id;
     for (const tx of data.transmissions) onTx(tx);
@@ -385,7 +652,7 @@ async function analyzeRecording() {
       `${data.alerts.length} alerts · Voice Transcribe → ${PARSERS[parserName]} · no ADS-B for recordings · ` +
       `<a href="/review#${data.id}">open in Review to give verdicts</a>`;
   } catch (err) {
-    $("scope-note").textContent = `Could not check the recording: ${err.message}`;
+    if (mine === runId) $("scope-note").textContent = `Could not check the recording: ${err.message}`;
   } finally {
     $("analyze").disabled = false;
   }
@@ -394,6 +661,7 @@ $("analyze").addEventListener("click", analyzeRecording);
 
 // ---------- modes ----------
 function reset() {
+  runId += 1;
   if (source) source.close();
   source = null;
   if (liveTimer) clearInterval(liveTimer);
@@ -403,18 +671,38 @@ function reset() {
   $("rec-audio").hidden = true;
   stats = { tx: 0, err: 0, track: 0, warn: 0 };
   simT = 0;
+  txs = [];
+  alertEls = new Map();
+  unacked = [];
+  renderPriority();
+  $("scorecard").hidden = true;
   clearList("alerts", "No alerts yet.");
   clearList("radio", "Radio is quiet.");
   setStats();
 }
 
+function stopped(note) {
+  $("scope-note").textContent = note;
+  $("play").textContent = "Restart";
+}
+
 async function play() {
   reset();
+  const mine = runId; // a second click or a mode switch overtakes this replay
+  $("onboard").hidden = true;
   const seed = parseInt($("seed").value, 10) || 0;
   const speed = $("speed").value;
-  const res = await api(`/api/scenario/${seed}`);
-  if (!res.ok) { $("scope-note").textContent = `Scenario unavailable: ${(await res.json()).detail}`; return; }
-  const info = await res.json();
+  let info;
+  try {
+    const res = await api(`/api/scenario/${seed}`);
+    const data = await res.json().catch(() => ({}));
+    if (mine !== runId) return;
+    if (!res.ok) { stopped(`Scenario unavailable: ${data.detail || res.status}`); return; }
+    info = data;
+  } catch {
+    if (mine === runId) stopped("Lost connection to the server. Press Restart to try again.");
+    return;
+  }
   center = info.center;
   roster = info.aircraft;
   let listen = $("hear").value === "muse";
@@ -437,26 +725,78 @@ async function play() {
     `Scenario ${info.name} · ${info.aircraft.length} aircraft · ${info.transmissions} transmissions · ${how}` +
     (!info.muse ? " · Muse unavailable (no API key)" : "");
   $("play").textContent = "Restart";
-  source = new EventSource(`/api/replay/${seed}?speed=${speed}&listen=${listen}&parser=${parserName}`);
+  const es = new EventSource(`/api/replay/${seed}?speed=${speed}&listen=${listen}&parser=${parserName}`);
+  source = es;
   museOK = info.muse;
-  source.addEventListener("session", (e) => { sessionId = JSON.parse(e.data).id; });
-  source.addEventListener("tx", (e) => onTx(JSON.parse(e.data)));
-  source.addEventListener("states", (e) => onStates(JSON.parse(e.data)));
-  source.addEventListener("alert", (e) => onAlert(JSON.parse(e.data)));
-  source.addEventListener("end", (e) => {
-    const { labels } = JSON.parse(e.data);
+  es.addEventListener("session", (e) => { sessionId = JSON.parse(e.data).id; });
+  es.addEventListener("tx", (e) => onTx(JSON.parse(e.data)));
+  es.addEventListener("states", (e) => onStates(JSON.parse(e.data)));
+  es.addEventListener("alert", (e) => onAlert(JSON.parse(e.data), true));
+  es.addEventListener("end", (e) => {
+    es.close();
+    const { labels, score } = JSON.parse(e.data);
     $("scope-note").textContent += ` · finished: ${labels.length} planted problems`;
-    source.close();
+    if (score) renderScore(score);
     $("play").textContent = "Play again";
   });
-  source.onerror = () => { if (source) source.close(); };
+  // Both the server's `event: error` (with a detail) and a dropped connection land here.
+  es.addEventListener("error", (e) => {
+    es.close();
+    if (source !== es) return;
+    source = null;
+    let detail = null;
+    try { detail = e.data ? JSON.parse(e.data).detail : null; } catch { detail = e.data; }
+    // The server's detail already reads "replay stopped: ...", so only capitalise it.
+    const msg = detail ? String(detail) : "";
+    stopped(msg ? msg[0].toUpperCase() + msg.slice(1) : "Lost connection to the server. Press Restart to try again.");
+  });
 }
 
+function runDemo() {
+  $("seed").value = 7;
+  $("speed").value = "10";
+  $("hear").value = "script";
+  $("parser").value = $("parser").querySelector('option[value="tagger"]').disabled ? "rules" : "tagger";
+  play();
+}
+$("demo").addEventListener("click", runDemo);
+
+// Grey out the speech and parser options this server cannot run, with the reason in the label.
+const OPTION_NOTE = { muse: "needs API key", spark: "needs API key", glimmer: "not deployed", tagger: "model not installed" };
+function markOptions(h) {
+  const off = { muse: !h.muse, spark: !h.muse, glimmer: !h.glimmer, tagger: h.parser === "rules" };
+  for (const sel of [$("hear"), $("parser")]) {
+    for (const opt of sel.options) {
+      if (!(opt.value in off)) continue;
+      opt.dataset.label = opt.dataset.label || opt.textContent;
+      opt.disabled = off[opt.value];
+      opt.textContent = off[opt.value] ? `${opt.dataset.label}: ${OPTION_NOTE[opt.value]}` : opt.dataset.label;
+    }
+    if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+      sel.value = sel === $("hear") ? "script" : h.parser;
+    }
+  }
+  const hint = $("opt-hint");
+  hint.hidden = h.muse && h.glimmer;
+  hint.textContent = !h.muse
+    ? "Muse options need MODEL_API_KEY on the server."
+    : "The fine-tuned Glimmer is not deployed for this server.";
+  if (h.parser === "rules") {
+    $("demo-note").textContent = "Scenario 7 at 10× with scripted speech and the Rules parser. No API key needed.";
+  }
+}
+fetch("/healthz").then((r) => r.json()).then((h) => {
+  museOK = h.muse;
+  markOptions(h);
+}).catch(() => {});
+
 async function pollLive() {
+  const mine = runId;
   try {
     const res = await api("/api/live");
     if (!res.ok) throw new Error((await res.json()).detail);
     const data = await res.json();
+    if (mine !== runId) return; // left live mode while this poll was in flight
     center = data.center;
     const seen = new Set();
     for (const sv of data.states) {
@@ -466,9 +806,9 @@ async function pollLive() {
     for (const key of [...aircraft.keys()]) if (!seen.has(key)) aircraft.delete(key);
     $("scope-note").textContent =
       `Live ADS-B around ${data.name} from OpenSky · ${data.states.length} airborne · ` +
-      `no radio feed in live mode · updated ${new Date().toLocaleTimeString()}`;
+      `no radio feed in live mode · updated ${new Date().toISOString().slice(11, 19)} UTC`;
   } catch (err) {
-    $("scope-note").textContent = `Live traffic unavailable: ${err.message}`;
+    if (mine === runId) $("scope-note").textContent = `Live traffic unavailable: ${err.message}`;
   }
 }
 
@@ -481,6 +821,8 @@ function setMode(mode) {
   document.body.classList.toggle("live", mode === "live");
   document.body.classList.toggle("recording", mode === "recording");
   reset();
+  $("onboard").hidden = mode !== "replay";
+  $("clock-label").textContent = { live: "UTC", recording: "Recording time", replay: "Scenario time" }[mode];
   if (mode === "live") {
     pollLive();
     liveTimer = setInterval(pollLive, 15000);
@@ -495,8 +837,9 @@ function setMode(mode) {
 
 document.querySelectorAll(".tab[data-mode]").forEach((t) => t.addEventListener("click", () => setMode(t.dataset.mode)));
 if (location.hash === "#live") setMode("live");
+if (location.hash === "#demo") runDemo();
 $("play").addEventListener("click", play);
-setInterval(() => { $("clock").textContent = document.body.classList.contains("live") ? new Date().toLocaleTimeString().slice(0, 5) : fmtTime(simT); }, 250);
+setInterval(() => { $("clock").textContent = document.body.classList.contains("live") ? new Date().toISOString().slice(11, 16) : fmtTime(simT); }, 250);
 
 resize();
 requestAnimationFrame(frame);

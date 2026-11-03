@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -115,7 +116,10 @@ class MuseChat:
             self._sleep(float(retry_after) if retry_after.isdigit() else min(2.0**attempt, 30.0))
         if resp.status_code != 200:
             raise ChatError(f"HTTP {resp.status_code}: {resp.text[:300]}")
-        return resp.json()["choices"][0]["message"]
+        try:
+            return resp.json()["choices"][0]["message"]
+        except (ValueError, KeyError, IndexError, TypeError) as exc:  # a 200 that is not a reply
+            raise ChatError(f"unexpected response: {resp.text[:300]}") from exc
 
 
 class SparkParser:
@@ -130,10 +134,21 @@ class SparkParser:
         key = hashlib.sha256(f"{self._chat.model}\n{SYSTEM_PROMPT}\n{tokens}".encode()).hexdigest()
         cache = self._cache_dir / f"{key[:32]}.json" if self._cache_dir else None
         if cache and cache.exists():
-            return Clearance.from_dict(json.loads(cache.read_text(encoding="utf-8")))
+            try:
+                return Clearance.from_dict(json.loads(cache.read_text(encoding="utf-8")))
+            # A damaged entry, or one being replaced right now, is asked again and rewritten.
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
         data = self._chat.structured(SYSTEM_PROMPT, tokens, JSON_SCHEMA, "clearance")
         clearance = Clearance.from_dict(data)
         if cache:
+            # Written whole and then renamed, so a job and a replay parsing the same phrase at
+            # once never read a half-written entry.
             cache.parent.mkdir(parents=True, exist_ok=True)
-            cache.write_text(json.dumps(clearance.to_dict()), encoding="utf-8")
+            tmp = cache.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
+            try:
+                tmp.write_text(json.dumps(clearance.to_dict()), encoding="utf-8")
+                os.replace(tmp, cache)
+            except OSError:  # e.g. Windows, with the entry open in another thread: it is a cache
+                tmp.unlink(missing_ok=True)
         return clearance

@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=5">
-  <link rel="stylesheet" href="/static/review.css?v=5">
+  <link rel="stylesheet" href="/static/style.css?v=6">
+  <link rel="stylesheet" href="/static/review.css?v=6">
 </head>
 <body class="review-page">
   <nav class="nav" id="nav" aria-label="Main"></nav>
@@ -46,15 +46,15 @@
           <label>Audio file <input id="up-file" type="file" accept="audio/*,video/*" required></label>
           <label>Name <input id="up-name" type="text" maxlength="200" placeholder="e.g. Morning shift 29 Oct 06:00-10:00"></label>
           <div class="pair">
-            <label>Unit <span class="opt">optional</span> <input id="up-unit" type="text" maxlength="100" placeholder="LKPR TWR" list="units"></label>
-            <label>Frequency <span class="opt">optional</span> <input id="up-freq" type="text" maxlength="40" placeholder="118.100" inputmode="decimal" list="freqs"></label>
+            <label>Unit <span class="opt">optional</span> <input id="up-unit" type="text" maxlength="100" placeholder="VOBL TWR" list="units"></label>
+            <label>Frequency <span class="opt">optional</span> <input id="up-freq" type="text" maxlength="40" placeholder="118.700" inputmode="decimal" list="freqs"></label>
           </div>
           <datalist id="units"></datalist>
           <datalist id="freqs"></datalist>
           <label>Callsigns on frequency <span class="opt">optional</span> <input id="up-cs" type="text" maxlength="2000" placeholder="SWR123, DLH4CK"></label>
           <label>Parser
             <select id="up-parser">
-              <option value="tagger" selected>Tagger (on-prem, no network)</option>
+              <option value="tagger" selected>Tagger (on-prem)</option>
               <option value="spark">Muse Spark</option>
               <option value="glimmer">Muse Glimmer (fine-tuned)</option>
               <option value="rules">Rules</option>
@@ -64,7 +64,8 @@
           <p id="up-msg" class="hint">WAV or any common audio format, up to 4 hours. Long recordings are checked in the background.</p>
         </form>
         <h2 class="card-head">Recordings <span id="retention" class="count" hidden></span></h2>
-        <ol id="list" class="list rec-list"><li class="empty">No recordings yet.</li></ol>
+        <p id="list-msg" class="notice err list-msg" role="alert" hidden></p>
+        <ol id="list" class="list rec-list" aria-label="Recordings"><li class="empty">No recordings yet.</li></ol>
       </aside>
 
       <section id="detail" class="card detail">
@@ -91,7 +92,7 @@
     <div id="report-body" class="report-body"></div>
   </dialog>
 
-  <script src="/static/common.js?v=5"></script>
-  <script src="/static/review.js?v=5"></script>
+  <script src="/static/common.js?v=6"></script>
+  <script src="/static/review.js?v=6"></script>
 </body>
 </html>

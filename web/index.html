@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="stylesheet" href="/static/style.css?v=6">
 </head>
-<body>
+<body class="monitor">
   <nav class="nav" id="nav" aria-label="Main"></nav>
 
   <div class="page">
@@ -53,8 +53,10 @@
       <label class="field recording-only" title="Optional: aircraft on frequency, as ADS-B shows them (SWR123) or spoken">Callsigns
         <input id="rec-cs" type="text" class="wide-input" placeholder="SWR123, DLH4CK"></label>
       <label class="toggle replay-only"><input id="sound" type="checkbox"> Radio audio</label>
+      <label class="toggle replay-only" title="Play a short tone when a readback error or track deviation is raised"><input id="chime" type="checkbox"> Error chime</label>
+      <span id="opt-hint" class="opt-hint not-live" hidden></span>
       <span class="spacer"></span>
-      <span class="clock-label">Clock</span><span id="clock" class="clock">--:--</span>
+      <span id="clock-label" class="clock-label">Scenario time</span><span id="clock" class="clock">--:--</span>
       <button id="play" class="primary replay-only">Play</button>
       <button id="analyze" class="primary recording-only">Check recording</button>
     </div>
@@ -71,7 +73,32 @@
         <h2 class="card-head">Situation display <span class="hint">45 NM · VOBL</span></h2>
         <div class="scope-wrap">
           <canvas id="scope"></canvas>
-          <div class="scope-note" id="scope-note">Press Play to replay a simulated Bengaluru approach frequency.</div>
+          <div class="scope-top">
+            <div class="scope-note" id="scope-note">Press Play to replay a simulated Bengaluru approach frequency.</div>
+            <div aria-live="assertive">
+              <button id="priority" class="priority" type="button" hidden>
+                <span class="priority-kind" id="priority-kind"></span>
+                <span class="priority-cs" id="priority-cs"></span>
+                <span class="priority-msg" id="priority-msg"></span>
+                <span class="priority-ack" id="priority-ack"></span>
+              </button>
+            </div>
+          </div>
+          <div class="onboard" id="onboard">
+            <h3>Catch readback errors before they become incidents</h3>
+            <p>Readback reads every clearance the controller gives, checks the pilot's readback against it,
+              and watches each aircraft's radar track against what was cleared.
+              Watch for red alerts: a wrong level, heading or callsign in a readback, or an aircraft
+              flying something it was not cleared for.</p>
+            <div class="onboard-example" aria-label="Example">
+              <span><b class="role controller">ATC</b> descend FL110</span>
+              <span><b class="role pilot">PILOT</b> descending FL120</span>
+              <span class="sev">Readback error</span>
+            </div>
+            <button id="demo" class="primary big" type="button">Run demo</button>
+            <small id="demo-note">Scenario 7 at 10× with scripted speech and the Tagger (on-prem). No API key needed.</small>
+          </div>
+          <section class="scorecard" id="scorecard" aria-label="Replay result" hidden></section>
           <div class="legend-strip" aria-hidden="true">
             <span><i style="border-color:var(--phosphor)"></i>Normal</span>
             <span><i style="border-color:var(--warn)"></i>Warning</span>
@@ -83,7 +110,7 @@
 
       <aside class="side">
         <section class="panel alerts">
-          <h2>Alerts <span id="alert-count" class="count">0</span></h2>
+          <h2>Alerts <span class="counts"><span id="unack-count" class="count unack" hidden></span><span id="alert-count" class="count">0</span></span></h2>
           <ol id="alerts" class="list"><li class="empty">No alerts yet.</li></ol>
         </section>
         <section class="panel radio">
@@ -110,7 +137,7 @@
     <div id="report-body" class="report-body"></div>
   </dialog>
 
-  <script src="/static/common.js?v=4"></script>
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/common.js?v=6"></script>
+  <script src="/static/app.js?v=6"></script>
 </body>
 </html>

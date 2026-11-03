@@ -124,6 +124,8 @@ button.primary:disabled { opacity: 0.6; cursor: wait; }
 .btn.danger { color: var(--err); }
 .clock { font: 500 14px var(--mono); color: var(--text); min-width: 52px; text-align: right; }
 .clock-label { font-size: 11px; color: var(--muted); }
+.opt-hint { font-size: 11.5px; color: var(--muted); }
+option:disabled { color: var(--muted); }
 
 body.live .replay-only, body.recording .replay-only, body.live .not-live { display: none; }
 body:not(.recording) .recording-only { display: none; }
@@ -150,6 +152,8 @@ body:not(.recording) .recording-only { display: none; }
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
 }
 .card-head .hint, .panel h2 .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+.panel h2 .counts { display: flex; gap: 6px; }
+.count.unack { background: rgba(240, 82, 79, 0.16); color: var(--err); }
 .scope-wrap { position: relative; background: var(--scope); flex: 1; min-height: 460px; }
 #scope { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .scope-note {
@@ -158,6 +162,73 @@ body:not(.recording) .recording-only { display: none; }
   background: rgba(11, 15, 20, 0.88); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
 }
 .scope-note a { pointer-events: auto; }
+/* Top of the scope: the status note, then the banner for the newest unacknowledged error. */
+.scope-top {
+  position: absolute; top: 12px; left: 12px; right: 12px; z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none;
+}
+.scope-top .scope-note { position: static; max-width: 100%; }
+.scope-top > div { width: 100%; }
+.priority {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; width: 100%; text-align: left;
+  pointer-events: auto; cursor: pointer; padding: 10px 14px; border-radius: 6px;
+  background: #3a1214; color: var(--text); border: 1px solid var(--err); box-shadow: inset 4px 0 0 var(--err);
+  font: 14px/1.35 var(--sans); animation: alarm 1.2s ease-in-out 3;
+}
+.priority:hover { background: #461619; }
+.priority-kind { font: 700 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--err); }
+.priority-cs { font: 600 14px var(--mono); }
+.priority-msg { flex: 1 1 260px; }
+.priority-ack { font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+@keyframes alarm { 50% { box-shadow: inset 4px 0 0 var(--err), 0 0 0 4px rgba(240, 82, 79, 0.35); } }
+.priority[hidden], .onboard[hidden], .scorecard[hidden], .opt-hint[hidden], .count[hidden] { display: none; }
+
+/* Empty-scope onboarding card, gone once a replay starts. */
+.onboard {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1;
+  width: min(460px, calc(100% - 32px)); display: grid; gap: 10px; justify-items: start;
+  padding: 18px 20px; background: rgba(17, 22, 29, 0.96); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.onboard h3 { margin: 0; font: 650 16px/1.3 var(--sans); }
+.onboard p { margin: 0; color: var(--text-2); font-size: 13px; }
+.onboard-example { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font: 12px var(--mono); color: var(--text); }
+.onboard-example .role { font: 700 10px var(--sans); letter-spacing: 0.07em; margin-right: 5px; }
+.onboard-example .role.controller { color: var(--ctl); }
+.onboard-example .role.pilot { color: var(--plt); }
+.onboard-example .sev {
+  font: 700 10px var(--sans); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--err); background: rgba(240, 82, 79, 0.13); padding: 1px 6px; border-radius: 4px;
+}
+button.primary.big { min-height: 40px; padding: 8px 20px; font-size: 14px; }
+.onboard small { color: var(--muted); font-size: 11.5px; }
+.scope-wrap:has(.onboard:not([hidden])) .scope-note { display: none; } /* the card says it already */
+
+/* Result of a finished replay: planted problems caught and missed. */
+.scorecard {
+  position: absolute; left: 12px; bottom: 12px; z-index: 2; width: min(380px, calc(100% - 24px));
+  max-height: calc(100% - 120px); display: flex; flex-direction: column;
+  background: rgba(17, 22, 29, 0.96); border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px;
+}
+.scorecard .sc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.scorecard .sc-head b { font: 600 13px var(--sans); }
+.scorecard .sc-close { background: none; border: 0; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.scorecard .sc-close:hover { color: var(--text); }
+.scorecard .sc-sum { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 12px 4px; color: var(--text-2); }
+.scorecard .sc-sum .n { font: 600 13px var(--mono); color: var(--text); }
+.scorecard .sc-sum .n.ok { color: var(--ok); }
+.scorecard .sc-sum .n.err { color: var(--err); }
+.scorecard ol { list-style: none; margin: 0; padding: 4px 6px 8px; overflow-y: auto; }
+.scorecard li > * {
+  display: flex; gap: 8px; align-items: baseline; width: 100%; padding: 4px 6px; border-radius: 4px;
+  background: none; border: 0; color: var(--text); font: 12px var(--mono); text-align: left;
+}
+.scorecard li > button { cursor: pointer; }
+.scorecard li > button:hover { background: var(--panel-2); }
+.scorecard .st { font: 700 10px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; min-width: 50px; }
+.scorecard .st.caught { color: var(--ok); }
+.scorecard .st.missed { color: var(--err); }
+.scorecard .what { color: var(--text-2); overflow-wrap: anywhere; }
 .legend-strip { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 14px; font: 11px var(--sans); color: var(--muted); pointer-events: none; }
 .legend-strip i { display: inline-block; width: 8px; height: 8px; border: 1.5px solid; margin-right: 5px; vertical-align: -1px; }
 .rec-audio { position: absolute; left: 12px; right: 12px; bottom: 40px; width: calc(100% - 24px); }
@@ -175,6 +246,16 @@ body:not(.recording) .recording-only { display: none; }
   border-radius: 6px; padding: 9px 11px; margin: 5px 2px; animation: flash 0.9s ease-out;
 }
 .alert.error { border-left-color: var(--err); }
+.alert.warning { animation-name: flash-warn; }
+.alert.unack { border-color: rgba(240, 82, 79, 0.55); border-left-color: var(--err); }
+.alert.locatable { cursor: pointer; }
+.alert.locatable:hover { border-color: #33404f; }
+.alert.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
+.alert .eh { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin-top: 6px; font: 12.5px var(--mono); }
+.alert .eh .k { font: 600 10px/1.9 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.alert .eh .v { color: var(--text); overflow-wrap: anywhere; }
+.alert .eh .v.heard { color: var(--err); }
+.alert.warning .eh .v.heard { color: var(--warn); }
 .alert .meta { display: flex; gap: 8px; align-items: center; font: 11px var(--mono); color: var(--muted); }
 .alert .meta .sev {
   font: 700 10px var(--sans); letter-spacing: 0.06em; text-transform: uppercase;
@@ -189,10 +270,13 @@ body:not(.recording) .recording-only { display: none; }
 .alert .draft:hover { border-color: var(--accent); }
 .alert .draft:disabled { color: var(--muted); cursor: wait; }
 @keyframes flash { from { background: rgba(240, 82, 79, 0.18); } to { background: var(--panel-2); } }
+@keyframes flash-warn { from { background: rgba(245, 165, 36, 0.16); } to { background: var(--panel-2); } }
 
 .tx { padding: 8px 9px; border-radius: 6px; margin: 2px 0; }
 .tx + .tx { border-top: 1px solid var(--line-soft); }
 .tx.flagged { background: rgba(240, 82, 79, 0.08); box-shadow: inset 2px 0 0 var(--err); }
+.tx.located { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); animation: located 1.6s ease-out; }
+@keyframes located { from { background: rgba(77, 163, 255, 0.32); } }
 .tx .head { display: flex; gap: 8px; align-items: baseline; font: 11px var(--mono); color: var(--muted); }
 .tx .role { font: 700 10px var(--sans); letter-spacing: 0.07em; }
 .tx .role.controller { color: var(--ctl); }
@@ -253,4 +337,22 @@ body:not(.recording) .recording-only { display: none; }
   .grid { padding: 12px 16px; flex: 1 0 auto; }
   .scope-wrap { min-height: 80vw; }
   .foot { padding: 10px 16px 16px; }
+  /* Monitor on a phone: shrink what sits above the scope. The disabled option labels already
+     say why, so the option hint is dropped too. */
+  body.monitor .brand small, body.monitor .page-head p, body.monitor .opt-hint { display: none; }
+  body.monitor .nav-links { flex-wrap: nowrap; overflow-x: auto; }
+  body.monitor .nav-links a { padding: 6px 8px; }
+  body.monitor .page-head { padding: 10px 16px 8px; }
+  body.monitor .toolbar { gap: 8px 10px; padding: 8px 10px; }
+  body.monitor .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+  body.monitor .metric { padding: 6px 8px; }
+  body.monitor .metric .label { font-size: 10.5px; line-height: 1.25; }
+  body.monitor .metric .value { font-size: 18px; }
+  body.monitor .grid { padding-top: 8px; }
+  .onboard { padding: 14px 16px; gap: 8px; max-height: calc(100% - 16px); overflow: auto; }
+  .onboard p { font-size: 12.5px; }
+  .onboard-example { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert, .priority, .tx.located { animation: none; }
 }

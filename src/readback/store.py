@@ -22,6 +22,9 @@ from pathlib import Path
 
 VERDICTS = ("open", "confirmed", "false_alarm")
 STATUSES = ("queued", "running", "done", "failed")
+# Every column but the log, which holds each transmission and alert and is only read when needed.
+COLUMNS = ("id, name, created, status, progress, error, parser, callsigns, unit, frequency, "
+           "duration, summary")  # fmt: skip
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS analyses (
@@ -65,6 +68,8 @@ class Store:
         self.audio.mkdir(parents=True, exist_ok=True)
         self.uploads = root / "uploads"
         self.uploads.mkdir(exist_ok=True)
+        for part in self.uploads.glob("*.part"):  # half-received when the server stopped
+            part.unlink(missing_ok=True)
         self._lock = threading.Lock()  # one connection, shared by the job threads
         self._db = sqlite3.connect(root / "readback.db", check_same_thread=False)
         self._db.row_factory = sqlite3.Row
@@ -124,10 +129,42 @@ class Store:
     ) -> list[dict]:
         where, args = self._where(unit, frequency)
         rows = self._run(
-            f"SELECT * FROM analyses WHERE {where} ORDER BY created DESC LIMIT ?", (*args, limit)
+            f"SELECT {COLUMNS} FROM analyses WHERE {where} ORDER BY created DESC LIMIT ?",
+            (*args, limit),
         )
         verdicts = self._verdict_counts()
         return [dict(self._row(r), verdicts=verdicts.get(r["id"], {})) for r in rows]
+
+    def statuses(self) -> dict[str, int]:
+        """How many recordings are queued, running, done and failed."""
+        counts = dict.fromkeys(STATUSES, 0)
+        for r in self._run("SELECT status, COUNT(*) AS n FROM analyses GROUP BY status"):
+            counts[r["status"]] = r["n"]
+        return counts
+
+    def alert_register(self, unit: str | None = None, frequency: str | None = None) -> list[dict]:
+        """Every checked recording (all, or one unit/frequency's), newest first, with its alerts
+        and their reviews: two queries, whatever the size of the store."""
+        where, args = self._where(unit, frequency)
+        rows = self._run(
+            "SELECT id, name, created, unit, frequency, json_extract(log, '$.alerts') AS alerts "
+            f"FROM analyses WHERE status = 'done' AND {where} ORDER BY created DESC",
+            args,
+        )
+        reviews: dict[str, dict[int, dict]] = {}
+        where, args = self._where(unit, frequency, "a.")
+        for r in self._run(
+            "SELECT r.* FROM reviews r JOIN analyses a ON a.id = r.analysis_id "
+            f"WHERE a.status = 'done' AND {where}",
+            args,
+        ):
+            reviews.setdefault(r["analysis_id"], {})[r["alert_index"]] = {
+                k: r[k] for k in ("verdict", "note", "reviewer", "updated")
+            }
+        return [
+            dict(r, alerts=json.loads(r["alerts"] or "[]"), reviews=reviews.get(r["id"], {}))
+            for r in rows
+        ]
 
     def positions(self) -> list[dict]:
         """Every unit and frequency in the store, with how many recordings each has."""
@@ -176,9 +213,11 @@ class Store:
         return again
 
     def delete(self, aid: str) -> None:
-        for table, col in (("reviews", "analysis_id"), ("reports", "analysis_id"),
-                           ("analyses", "id")):  # fmt: skip
-            self._run(f"DELETE FROM {table} WHERE {col} = ?", (aid,))
+        # One transaction, so closing the store mid-purge never leaves a recording half deleted.
+        with self._lock, self._db:
+            for table, col in (("reviews", "analysis_id"), ("reports", "analysis_id"),
+                               ("analyses", "id")):  # fmt: skip
+                self._db.execute(f"DELETE FROM {table} WHERE {col} = ?", (aid,))
         (self.audio / f"{aid}.wav").unlink(missing_ok=True)
         self.upload(aid).unlink(missing_ok=True)
 
@@ -189,6 +228,12 @@ class Store:
         for aid in old:
             self.delete(aid)
         return old
+
+    def close(self) -> None:
+        """Fold the write-ahead log into readback.db and close the connection (at shutdown)."""
+        with self._lock:
+            self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            self._db.close()
 
     # ---------- reviews ----------
     def review(
@@ -210,6 +255,13 @@ class Store:
             r["alert_index"]: {k: r[k] for k in ("verdict", "note", "reviewer", "updated")}
             for r in rows
         }
+
+    def verdicts(self) -> dict[str, int]:
+        """How many reviews give each verdict, across the store."""
+        counts = dict.fromkeys(VERDICTS, 0)
+        for r in self._run("SELECT verdict, COUNT(*) AS n FROM reviews GROUP BY verdict"):
+            counts[r["verdict"]] = r["n"]
+        return counts
 
     def _verdict_counts(self) -> dict[str, dict[str, int]]:
         rows = self._run(

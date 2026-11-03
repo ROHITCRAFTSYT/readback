@@ -1,0 +1,26 @@
+# Readback monitor and review console on http://127.0.0.1:8000.
+#   docker compose up --build
+# Runs without a .env file (scenarios and the on-prem tagger). For Voice Transcribe, Muse Spark,
+# recordings and occurrence reports, cp .env.example .env and add MODEL_API_KEY.
+services:
+  readback:
+    build: .
+    image: readback
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - readback-data:/data  # recordings, verdicts and reports
+      - readback-cache:/app/results/raw  # Voice Transcribe and parser caches, kept across rebuilds
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  readback-data:
+  readback-cache:

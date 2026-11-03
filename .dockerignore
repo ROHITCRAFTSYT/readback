@@ -5,6 +5,7 @@
 .pytest_cache
 .ruff_cache
 .claude
+docs
 **/__pycache__
 data
 results

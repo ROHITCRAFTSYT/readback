@@ -11,8 +11,9 @@ needs MODEL_API_KEY in .env; transcripts are cached in results/raw/asr-live/.
 Recordings are checked as background jobs (READBACK_WORKERS at a time; a restart requeues
 unfinished ones) and kept, with reviewer verdicts and drafted
 reports, in a SQLite store under READBACK_DATA (default ./var). Set READBACK_TOKEN to require
-an access token for every /api and audio request, and READBACK_RETENTION_DAYS to delete
-recordings after that many days.
+an access token for every /api and audio request, READBACK_RETENTION_DAYS to delete
+recordings after that many days, and READBACK_MAX_QUEUE (default 20) to cap how many checks
+can wait at once. /readyz and /metrics are for probes and Prometheus.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ import io
 import json
 import logging
 import os
+import threading
 import time
 import uuid
 from collections.abc import AsyncIterator, Iterator
@@ -36,17 +38,25 @@ from pathlib import Path
 import numpy as np
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from readback import rules
 from readback.adsb import KNOWN_DESIGNATORS, OpenSky, spoken_callsign
+from readback.clearance import Clearance
 from readback.keywords import PHRASEOLOGY, fit
 from readback.monitor import Monitor, describe
 from readback.normalize import spoken
 from readback.occurrence import AgentError, Log, investigate, to_markdown
 from readback.replay import replay
+from readback.scorecard import Scorer
 from readback.sim import CENTER, generate
 from readback.store import VERDICTS, Store
 from readback.tagger.decode import tidy
@@ -59,6 +69,9 @@ TRAINING = ROOT / "training"
 ASR_CACHE = ROOT / "results" / "raw" / "asr-live"
 load_dotenv(ROOT / ".env")
 MAX_UPLOAD = int(os.environ.get("READBACK_MAX_UPLOAD_MB", "500")) * 1024 * 1024
+MAX_QUEUE = int(os.environ.get("READBACK_MAX_QUEUE", "20"))  # checks waiting or running at once
+RETENTION_EVERY = 3600.0  # seconds between retention sweeps while the server runs
+STARTED = time.time()
 log = logging.getLogger("readback")
 
 TAGS = [
@@ -68,14 +81,30 @@ TAGS = [
     {"name": "reports", "description": "Occurrence reports drafted by the Muse Spark agent."},
     {"name": "monitor", "description": "Scenario replays (server-sent events) and live ADS-B."},
     {"name": "training", "description": "The tagger's continuous training run."},
-    {"name": "system", "description": "Health and sign-in."},
+    {"name": "system", "description": "Health, readiness, metrics and sign-in."},
 ]  # fmt: skip
+
+
+async def _retention() -> None:
+    """Apply the retention period every hour, so it holds even when no new checks finish."""
+    while True:
+        await asyncio.sleep(RETENTION_EVERY)
+        try:
+            await asyncio.to_thread(_purge)
+        except Exception:
+            log.exception("retention sweep failed")
 
 
 @contextlib.asynccontextmanager
 async def _lifespan(_app: FastAPI):
     store()  # open the store, apply retention and requeue unfinished checks before any request
+    sweeper = asyncio.create_task(_retention()) if retention_days() > 0 else None
     yield
+    if sweeper is not None:
+        sweeper.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await sweeper
+    _shutdown()
 
 
 app = FastAPI(
@@ -95,12 +124,53 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 _STORE: Store | None = None
-JOBS = ThreadPoolExecutor(max_workers=int(os.environ.get("READBACK_WORKERS", "2")))
+
+
+def _pool() -> ThreadPoolExecutor:
+    return ThreadPoolExecutor(max_workers=int(os.environ.get("READBACK_WORKERS", "2")))
+
+
+JOBS = _pool()
+JOB_SECONDS = {"count": 0, "sum": 0.0}  # checks finished since the server started (/metrics)
+_JOB_LOCK = threading.Lock()
+_STOPPING = threading.Event()  # set at shutdown; a running check stops at its next step
+
+
+class _Stopped(BaseException):
+    """Raised in a running check once the server is stopping. Not an Exception, so the
+    per-transmission handlers in recording.py let it through instead of logging each one."""
+
+
+def _unless_stopping(fn):
+    """fn, but raising _Stopped instead of running once the server is stopping."""
+
+    def call(*args, **kwargs):
+        if _STOPPING.is_set():
+            raise _Stopped
+        return fn(*args, **kwargs)
+
+    return call
+
+
+def _shutdown() -> None:
+    """Stop taking checks and close the store. Queued checks leave the pool but stay queued in
+    the store with their upload. A check still running stops at its next transcription, parse
+    or progress update (one already sent to Muse finishes first) and is left as running, with
+    its upload. The next start runs both again. A fresh pool is left for an app started again
+    in the same process (tests)."""
+    global JOBS, _STORE
+    _STOPPING.set()
+    JOBS.shutdown(wait=False, cancel_futures=True)
+    JOBS = _pool()
+    if _STORE is not None:
+        _STORE.close()
+        _STORE = None
 
 
 def configure(data: Path) -> Store:
     """Open (or create) the store of recordings, verdicts and reports under `data`."""
     global _STORE
+    _STOPPING.clear()
     _STORE = Store(data)
     again = _STORE.interrupted()
     _purge()
@@ -404,55 +474,70 @@ async def _stream(seed: int, speed: float, listen: bool, parser: str) -> AsyncIt
 
     def timed(text: str):
         start = time.perf_counter()
-        clearance = parse(text)
+        timing.pop("parse_error", None)
+        try:
+            clearance = parse(text)
+        except Exception as exc:  # Spark or Glimmer down: this transmission stays unparsed
+            log.warning("replay %s: transmission not parsed: %s", seed, exc)
+            timing["parse_error"] = str(exc)[:200] or type(exc).__name__
+            clearance = Clearance(callsign=None, items=[])
         timing["parse_s"] = round(time.perf_counter() - start, 2)
         return clearance
 
     monitor = Monitor(timed)
     if listen:
         scen = dict(scen, events=heard(scen, seed))
-    log = Log()
-    yield _sse("session", {"id": _session(log)})
+    seen, scorer = Log(), Scorer(scen)
+    yield _sse("session", {"id": _session(seen)})
     steps = replay(scen, monitor)
     t0 = time.monotonic()
     clock = 0.0
     batch: list[dict] = []
     batch_t = None
-    while True:
-        # Speech recognition and Spark block on the network: step the replay in a thread.
-        step = await asyncio.to_thread(next, steps, None)
-        if step is None:
-            break
-        ev, alerts, parsed = step
-        if ev["t"] > clock:
-            if batch:
-                yield _sse("states", {"t": batch_t, "states": batch})
-                batch = []
-            await asyncio.sleep(max(0.0, t0 + ev["t"] / speed - time.monotonic()))
-            clock = ev["t"]
-        if ev["type"] == "state":
-            batch.append(ev["state"])
-            batch_t = ev["t"]
-            log.states.setdefault(ev["state"]["callsign"], []).append(dict(ev["state"], t=ev["t"]))
-        elif ev["type"] == "tx":
-            clearance = parsed["clearance"]
-            payload = _tx_payload(
-                ev["t"], ev["id"], parsed["role"], ev["text"], clearance,
-                audio=f"/audio/{ev['audio']}" if ev.get("audio") else None,
-                script=ev.get("script"),
-                asr_s=ev.get("asr_s"),
-                asr_error=ev.get("asr_error"),
-                parse_s=timing.get("parse_s"),
-                snapped_from=monitor.snapped.get(ev["id"]),
-            )  # fmt: skip
-            log.transmissions.append(dict(payload, items=clearance["items"]))
-            yield _sse("tx", payload)
-        for alert in alerts:
-            log.alerts.append(dict(alert.to_dict(), t=alert.time - scen["start"]))
-            yield _sse("alert", dict(log.alerts[-1], index=len(log.alerts) - 1))
+    try:
+        while True:
+            # Speech recognition and Spark block on the network: step the replay in a thread.
+            step = await asyncio.to_thread(next, steps, None)
+            if step is None:
+                break
+            ev, alerts, parsed = step
+            if ev["t"] > clock:
+                if batch:
+                    yield _sse("states", {"t": batch_t, "states": batch})
+                    batch = []
+                await asyncio.sleep(max(0.0, t0 + ev["t"] / speed - time.monotonic()))
+                clock = ev["t"]
+            if ev["type"] == "state":
+                batch.append(ev["state"])
+                batch_t = ev["t"]
+                seen.states.setdefault(ev["state"]["callsign"], []).append(
+                    dict(ev["state"], t=ev["t"])
+                )
+            elif ev["type"] == "tx":
+                clearance = parsed["clearance"]
+                payload = _tx_payload(
+                    ev["t"], ev["id"], parsed["role"], ev["text"], clearance,
+                    audio=f"/audio/{ev['audio']}" if ev.get("audio") else None,
+                    script=ev.get("script"),
+                    asr_s=ev.get("asr_s"),
+                    asr_error=ev.get("asr_error"),
+                    parse_s=timing.get("parse_s"),
+                    parse_error=timing.get("parse_error"),
+                    snapped_from=monitor.snapped.get(ev["id"]),
+                )  # fmt: skip
+                seen.transmissions.append(dict(payload, items=clearance["items"]))
+                yield _sse("tx", payload)
+            for alert in alerts:
+                seen.alerts.append(dict(alert.to_dict(), t=alert.time - scen["start"]))
+                scorer.add(alert, len(seen.alerts) - 1)
+                yield _sse("alert", dict(seen.alerts[-1], index=len(seen.alerts) - 1))
+    except Exception as exc:  # speech synthesis or recognition failed: say so, end cleanly
+        log.exception("replay %s stopped", seed)
+        yield _sse("error", {"detail": f"replay stopped: {str(exc)[:200] or type(exc).__name__}"})
+        return
     if batch:
         yield _sse("states", {"t": batch_t, "states": batch})
-    yield _sse("end", {"labels": scen["labels"]})
+    yield _sse("end", {"labels": scen["labels"], "score": scorer.score()})
 
 
 @app.get("/api/replay/{seed}", tags=["monitor"])
@@ -495,10 +580,12 @@ def occurrence_report(sid: str, index: int) -> dict:
     session = _stored_log(sid) if stored else SESSIONS[sid]
     if session is None or not 0 <= index < len(session.alerts):
         raise HTTPException(404, "unknown session or alert; replay or analyze again")
+    from readback.llm import ChatError
+
     try:
         result = investigate(_chat(), session, session.alerts[index])
-    except AgentError as exc:
-        raise HTTPException(502, str(exc)) from exc
+    except (AgentError, ChatError) as exc:  # Muse refused, failed, or never filed a report
+        raise HTTPException(502, f"report agent: {exc}") from exc
     report = {"markdown": to_markdown(**result), **result}
     if stored:
         store().save_report(sid, index, report)
@@ -508,45 +595,93 @@ def occurrence_report(sid: str, index: int) -> dict:
 
 
 # ---------- recordings: background jobs, history, review ----------
-async def _upload(request: Request) -> bytes:
+# Uploads still arriving count towards MAX_QUEUE, so a burst of them cannot overshoot it. Only
+# touched on the event loop, with no await between the check and the count, so no lock.
+_RECEIVING = 0
+
+
+def _check_queue() -> None:
+    """Refuse a new check while MAX_QUEUE recordings are already waiting or being checked."""
+    counts = store().statuses()
+    busy = counts["queued"] + counts["running"] + _RECEIVING
+    if busy >= MAX_QUEUE:
+        raise HTTPException(
+            503, f"{busy} recordings are already waiting to be checked; try again in a few minutes",
+            headers={"Retry-After": "60"},
+        )  # fmt: skip
+
+
+async def _upload(request: Request) -> Path:
+    """Write the request body to a file under uploads/ as it arrives, counting bytes, so the
+    size limit holds for a body sent without Content-Length too. Returns the file."""
+    global _RECEIVING
     if not muse_ready():
         raise HTTPException(400, "recordings need MODEL_API_KEY in .env (Voice Transcribe)")
+    too_large = HTTPException(413, f"recording too large ({MAX_UPLOAD // 2**20} MB limit)")
     if int(request.headers.get("content-length") or 0) > MAX_UPLOAD:
-        raise HTTPException(413, f"recording too large ({MAX_UPLOAD // 2**20} MB limit)")
-    data = await request.body()
-    if not data:
-        raise HTTPException(400, "send the audio file as the request body")
-    if len(data) > MAX_UPLOAD:
-        raise HTTPException(413, f"recording too large ({MAX_UPLOAD // 2**20} MB limit)")
-    return data
+        raise too_large
+    _check_queue()
+    _RECEIVING += 1  # until the caller creates its row, which it does before its next await
+    path = store().uploads / f"{uuid.uuid4().hex}.part"
+    size = 0
+    try:
+        with path.open("wb") as f:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_UPLOAD:
+                    raise too_large
+                await asyncio.to_thread(f.write, chunk)
+        if not size:
+            raise HTTPException(400, "send the audio file as the request body")
+    except BaseException:  # too large, empty, or the client went away
+        path.unlink(missing_ok=True)
+        raise
+    finally:
+        _RECEIVING -= 1
+    return path
 
 
-def _queue(aid: str, data: bytes) -> None:
+def _queue(aid: str, path: Path) -> None:
     """Keep the upload until its check finishes, then hand the check to the worker pool."""
-    store().upload(aid).write_bytes(data)
+    path.replace(store().upload(aid))
     JOBS.submit(_run_job, aid)
 
 
 def _run_job(aid: str) -> None:
-    """Check one queued recording. The upload is deleted once the check has finished, whether
-    it worked or not; if the server stops first, the next start queues it again."""
-    from readback.recording import RecordingError, analyze
-
+    """Check one queued recording, timing it for /metrics."""
     st = store()
     if not st.claim(aid):  # deleted, or another worker has it
         return
-    rec, upload = st.get(aid), st.upload(aid)
+    start = time.monotonic()
     try:
-        result = analyze(upload.read_bytes(), _asr(), _parser(rec["parser"]),
-                         rec["callsigns"].split(","),
-                         progress=lambda f: st.update(aid, progress=round(f, 3)))  # fmt: skip
+        _check(st, aid)
+    finally:
+        with _JOB_LOCK:
+            JOB_SECONDS["count"] += 1
+            JOB_SECONDS["sum"] += time.monotonic() - start
+
+
+def _check(st: Store, aid: str) -> None:
+    """The check itself. The upload is deleted once it has finished, whether it worked or
+    not; if the server stops first, the next start queues it again."""
+    from readback.recording import RecordingError, analyze
+
+    rec, upload, asr = st.get(aid), st.upload(aid), _asr()
+    asr.transcribe = _unless_stopping(asr.transcribe)  # each step stops once the server does
+    parse = _unless_stopping(_parser(rec["parser"]))
+    progress = _unless_stopping(lambda f: st.update(aid, progress=round(f, 3)))
+    try:
+        result = analyze(upload.read_bytes(), asr, parse, rec["callsigns"].split(","), progress)
+    except _Stopped:  # the server is stopping: the next start checks it again from its upload
+        return
     except RecordingError as exc:
         st.update(aid, status="failed", error=str(exc))
         upload.unlink(missing_ok=True)
         return
     except Exception as exc:
         log.exception("recording %s failed", aid)
-        st.update(aid, status="failed", error=f"internal error: {exc}"[:300])
+        st.update(aid, status="failed", error=f"internal error ({type(exc).__name__}); see the "
+                  "server log")  # fmt: skip
         upload.unlink(missing_ok=True)
         return
     if st.get(aid) is None:  # deleted while it was being checked
@@ -567,11 +702,15 @@ def _run_job(aid: str) -> None:
         "alerts": len(alerts),
         "errors": sum(a["severity"] == "error" for a in alerts),
         "failed_transmissions": result["failed_transmissions"],
+        "failed_parses": result.get("failed_parses", 0),
     }
     st.update(aid, status="done", progress=1.0, duration=result["duration"], summary=summary,
               log={"transmissions": txs, "alerts": alerts})  # fmt: skip
     upload.unlink(missing_ok=True)
     _purge()
+
+
+UNREVIEWED = {"verdict": "open", "note": "", "reviewer": "", "updated": None}
 
 
 def _detail(aid: str) -> dict:
@@ -581,14 +720,13 @@ def _detail(aid: str) -> dict:
         raise HTTPException(404, "no such recording")
     saved = rec.pop("log") or {"transmissions": [], "alerts": []}
     reviews, reported = st.reviews(aid), st.reported(aid)
-    unreviewed = {"verdict": "open", "note": "", "reviewer": "", "updated": None}
     rec["transmissions"] = [
         {k: v for k, v in dict(tx, items=tx["labels"]).items() if k != "labels"}
         for tx in saved["transmissions"]
     ]
     rec["alerts"] = [
         dict(a, index=k, reported=k in reported,
-             review=reviews.get(k, unreviewed))
+             review=reviews.get(k, UNREVIEWED))
         for k, a in enumerate(saved["alerts"])
     ]  # fmt: skip
     rec["audio"] = f"/api/recordings/{aid}/audio" if (st.audio / f"{aid}.wav").exists() else None
@@ -607,10 +745,10 @@ async def submit_recording(
     """Queue a recording (the request body: WAV, or any format ffmpeg reads) for checking.
     Poll GET /api/recordings/{id} for progress and results."""
     _check_parser(parser)
-    data = await _upload(request)
+    path = await _upload(request)
     aid = store().create(name.strip() or time.strftime("Recording %Y-%m-%d %H:%M"), parser,
                          callsigns, unit.strip(), frequency.strip())  # fmt: skip
-    _queue(aid, data)
+    _queue(aid, path)
     return {"id": aid}
 
 
@@ -743,8 +881,11 @@ def recording_csv(aid: str) -> Response:
 def all_alerts_csv(unit: str | None = UNIT, frequency: str | None = FREQUENCY) -> Response:
     """Every alert of every checked recording (or one unit/frequency's) with its verdict: the
     safety team's register."""
-    recs = store().list(5000, unit, frequency)
-    return _csv([_detail(r["id"]) for r in recs if r["status"] == "done"])
+    recs = store().alert_register(unit, frequency)
+    for rec in recs:
+        rec["alerts"] = [dict(a, index=k, review=rec["reviews"].get(k, UNREVIEWED))
+                         for k, a in enumerate(rec["alerts"])]  # fmt: skip
+    return _csv(recs)
 
 
 @app.post("/api/analyze", tags=["recordings"])
@@ -758,10 +899,10 @@ async def analyze_recording(
     """Check a recording and wait for the result (scripts and short files). It is stored like
     any other; long recordings are better sent to POST /api/recordings."""
     _check_parser(parser)
-    data = await _upload(request)
+    path = await _upload(request)
     aid = store().create(time.strftime("Recording %Y-%m-%d %H:%M"), parser, callsigns,
                          unit.strip(), frequency.strip())  # fmt: skip
-    store().upload(aid).write_bytes(data)
+    path.replace(store().upload(aid))
     await asyncio.to_thread(_run_job, aid)
     rec = _detail(aid)
     if rec["status"] != "done":
@@ -785,6 +926,49 @@ def healthz() -> dict:
         "auth": bool(os.environ.get("READBACK_TOKEN")),
         "live": live_center()[0],
     }
+
+
+@app.get("/readyz", tags=["system"])
+def readyz() -> JSONResponse:
+    """Ready for work: the store answers. Also how many checks are waiting and running."""
+    try:
+        counts = store().statuses()
+    except Exception as exc:
+        log.warning("not ready: %s", exc)
+        return JSONResponse({"ok": False, "detail": "the store is not answering"}, 503)
+    return JSONResponse({"ok": True, "queued": counts["queued"], "running": counts["running"],
+                         "max_queue": MAX_QUEUE})  # fmt: skip
+
+
+@app.get("/metrics", tags=["system"], response_class=PlainTextResponse)
+def metrics() -> PlainTextResponse:
+    """Prometheus text format. Counts and timings only: no recording names, units or callsigns."""
+    st = store()
+    statuses, verdicts = st.statuses(), st.verdicts()
+    with _JOB_LOCK:
+        jobs = dict(JOB_SECONDS)
+    lines = [
+        "# HELP readback_recordings Recordings in the store, by status.",
+        "# TYPE readback_recordings gauge",
+        *[f'readback_recordings{{status="{k}"}} {n}' for k, n in statuses.items()],
+        "# HELP readback_queue_depth Recordings waiting to be checked or being checked.",
+        "# TYPE readback_queue_depth gauge",
+        f"readback_queue_depth {statuses['queued'] + statuses['running']}",
+        "# HELP readback_alerts Alerts raised in the checked recordings in the store.",
+        "# TYPE readback_alerts gauge",
+        f"readback_alerts {st.stats()['alerts']}",
+        "# HELP readback_reviews Reviewer verdicts on alerts, by verdict.",
+        "# TYPE readback_reviews gauge",
+        *[f'readback_reviews{{verdict="{k}"}} {n}' for k, n in verdicts.items()],
+        "# HELP readback_job_duration_seconds Time to check a recording, since the server started.",
+        "# TYPE readback_job_duration_seconds summary",
+        f"readback_job_duration_seconds_count {jobs['count']}",
+        f"readback_job_duration_seconds_sum {jobs['sum']:.3f}",
+        "# HELP readback_uptime_seconds Seconds since the server started.",
+        "# TYPE readback_uptime_seconds gauge",
+        f"readback_uptime_seconds {time.time() - STARTED:.0f}",
+    ]
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 
 @app.get("/training", include_in_schema=False)

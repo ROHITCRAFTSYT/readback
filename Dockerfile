@@ -1,8 +1,9 @@
 # Readback monitor: the web UI and API on port 8000.
 #   docker build -t readback .
-#   docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
-# Without MODEL_API_KEY the scripted scenarios and the tagger still work; Voice Transcribe,
-# Muse Spark, recordings and occurrence reports need the key.
+#   docker run -p 8000:8000 -v readback-data:/data readback   (or: docker compose up)
+# No .env is needed: without MODEL_API_KEY the scripted scenarios and the tagger still work.
+# Voice Transcribe, Muse Spark, recordings and occurrence reports need the key: add
+# --env-file .env after cp .env.example .env.
 FROM python:3.12-slim
 
 RUN apt-get update \

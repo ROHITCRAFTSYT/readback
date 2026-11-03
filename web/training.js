@@ -87,8 +87,10 @@ function renderBlind() {
   note.textContent = "";
   note.append(`${names.join(", ")}. Labeled by hand and frozen on ${info.frozen.slice(0, 10)}, before any parser saw them; only the hash is published. `);
   note.append(info.generator_unchanged
-    ? el("span", "ok", "Generator unchanged since the freeze.")
-    : el("span", "warn", "Generator changed since the freeze (see git history)."));
+    ? el("span", "ok", "Generator not changed since the freeze.")
+    : el("span", "warn", `Generator changed since the freeze: now v${st.generator_version ?? "?"}${
+      // Only v4's provenance is documented; a later version gets no such claim.
+      st.generator_version === 4 ? ", from synthetic validation mistakes only" : ""} (see the README).`));
   const seen = st.champion.atco2_seen;
   if (seen) {
     const rs = st.baseline.rules.atco2_seen || {};

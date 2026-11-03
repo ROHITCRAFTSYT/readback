@@ -38,7 +38,7 @@ function renderNav() {
       <div><span class="utc" id="utc">--:--</span><small class="clock-label"> UTC</small></div>
       <div class="row"><span><i class="dot" data-health="muse"></i>Voice Transcribe</span><span class="state" data-health-state="muse"></span></div>
       <div class="row"><span><i class="dot" data-health="spark"></i>Muse Spark</span><span class="state" data-health-state="spark"></span></div>
-      <div class="row"><span><i class="dot" data-health="glimmer"></i>Glimmer (fine-tuned)</span><span class="state" data-health-state="glimmer"></span></div>
+      <div class="row"><span><i class="dot" data-health="glimmer"></i>Muse Glimmer (fine-tuned)</span><span class="state" data-health-state="glimmer"></span></div>
       <div class="row"><span><i class="dot on"></i>Tagger (on-prem)</span><span class="state">CPU</span></div>
       <p class="nav-note">Decision support for review. Every alert needs a human verdict.</p>
     </div>`;
@@ -48,13 +48,15 @@ function renderNav() {
   };
   tick();
   setInterval(tick, 5000);
-  fetch("/healthz").then((r) => r.json()).then((h) => {
-    const state = { muse: h.muse, spark: h.muse, glimmer: h.glimmer };
+  const show = (state, text) => {
     for (const [k, on] of Object.entries(state)) {
       nav.querySelector(`[data-health="${k}"]`).className = `dot ${on ? "on" : "off"}`;
-      nav.querySelector(`[data-health-state="${k}"]`).textContent = on ? "ready" : "off";
+      nav.querySelector(`[data-health-state="${k}"]`).textContent = text || (on ? "ready" : "off");
     }
-  }).catch(() => {});
+  };
+  fetch("/healthz").then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText)))).then((h) => {
+    show({ muse: h.muse, spark: h.muse, glimmer: h.glimmer });
+  }).catch(() => show({ muse: false, spark: false, glimmer: false }, "unreachable"));
 }
 renderNav();
 
@@ -63,33 +65,58 @@ let signingIn = null;
 function askToken() {
   if (signingIn) return signingIn;
   signingIn = new Promise((resolve) => {
+    const back = document.activeElement; // focus returns here once signed in
     const dlg = document.createElement("dialog");
     dlg.className = "report login";
+    dlg.setAttribute("aria-labelledby", "login-title");
+    dlg.setAttribute("aria-describedby", "login-why");
     dlg.innerHTML = `
       <form method="dialog" class="login-form">
-        <h2>Access token</h2>
-        <p>This Readback server is protected. Enter the access token your administrator set.</p>
-        <input type="password" name="token" autocomplete="current-password" required>
-        <p class="login-error" hidden>Wrong token.</p>
+        <h2 id="login-title">Access token</h2>
+        <p id="login-why">This Readback server is protected. Enter the access token your administrator set.</p>
+        <input type="password" name="token" aria-label="Access token" autocomplete="current-password" required autofocus>
+        <p class="login-error" role="alert" hidden></p>
         <button class="primary" type="submit">Sign in</button>
       </form>`;
     document.body.append(dlg);
     const form = dlg.querySelector("form");
+    const input = form.token;
+    const error = dlg.querySelector(".login-error");
+    const fail = (text) => {
+      error.textContent = text;
+      error.hidden = false;
+      input.setAttribute("aria-invalid", "true");
+      input.select();
+      input.focus();
+    };
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: form.token.value }),
-      });
-      if (!res.ok) { dlg.querySelector(".login-error").hidden = false; return; }
+      const btn = form.querySelector("button");
+      if (btn.disabled) return;
+      btn.disabled = true;
+      let res;
+      try {
+        res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: input.value }),
+        });
+      } catch {
+        res = null;
+      }
+      btn.disabled = false;
+      if (!res) return fail("Could not reach the server. Try again.");
+      if (res.status === 401) return fail("Wrong token.");
+      if (!res.ok) return fail(`Sign-in failed: ${await responseError(res)}`);
       dlg.close();
       dlg.remove();
       signingIn = null;
+      if (back && back.isConnected && back.focus) back.focus();
       resolve();
     });
     dlg.addEventListener("cancel", (e) => e.preventDefault());
     dlg.showModal();
+    input.focus();
   });
   return signingIn;
 }
@@ -101,6 +128,25 @@ async function api(url, opts = {}) {
     res = await fetch(url, opts);
   }
   return res;
+}
+
+// What went wrong with a response that is not ok: the server's {detail}, or the start of its
+// body when that is not JSON (a proxy's error page, say), or else the status line.
+async function responseError(res) {
+  let text = "";
+  try { text = await res.text(); } catch {}
+  try {
+    const detail = JSON.parse(text).detail;
+    if (detail) return typeof detail === "string" ? detail : JSON.stringify(detail);
+  } catch {}
+  const plain = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (plain && plain.length <= 200) return plain;
+  return `${res.status} ${res.statusText || "error"}`.trim();
+}
+
+// The message for an api() call that threw: fetch throws a TypeError when it gets no reply.
+function fetchError(err) {
+  return err instanceof TypeError ? "could not reach the server" : err.message;
 }
 
 // Occurrence reports arrive as Markdown; this renders the subset the agent writes.

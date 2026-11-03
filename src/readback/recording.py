@@ -17,7 +17,9 @@ from __future__ import annotations
 import io
 import logging
 import shutil
+import struct
 import subprocess
+import threading
 import wave
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
@@ -49,23 +51,40 @@ class RecordingError(ValueError):
 
 def to_wav(data: bytes) -> bytes:
     """16 kHz mono 16-bit WAV from a WAV file, or from any format ffmpeg reads."""
+    too_long = f"recording is longer than the limit of {MAX_SECONDS // 3600} hours"
+    long_header = False
     if data[:4] == b"RIFF":
         try:
-            return to_pcm16_wav(data)
+            # to_pcm16_wav converts every sample before anything checks the length, so read
+            # the length from the header first. A recorder streaming to disk can leave a
+            # placeholder length there, so a header over the limit goes to ffmpeg's capped decode.
+            with wave.open(io.BytesIO(data)) as w:
+                long_header = w.getnframes() > MAX_SECONDS * w.getframerate()
+            if not long_header:
+                return to_pcm16_wav(data)
         except (wave.Error, ValueError, EOFError):
             pass  # an unusual WAV encoding: let ffmpeg try
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
+        if long_header:
+            raise RecordingError(too_long)
         raise RecordingError("only 16-bit PCM WAV is supported without ffmpeg installed")
-    proc = subprocess.run(
-        [ffmpeg, "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
-         "-ac", "1", "-ar", "16000", "-sample_fmt", "s16", "-f", "wav", "pipe:1"],
-        input=data, capture_output=True, timeout=120, check=False,
-    )  # fmt: skip
+    # -t stops the decode just past the limit, so a small, long file cannot fill memory.
+    try:
+        proc = subprocess.run(
+            [ffmpeg, "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
+             "-t", str(MAX_SECONDS + 1),
+             "-ac", "1", "-ar", "16000", "-sample_fmt", "s16", "-f", "wav", "pipe:1"],
+            input=data, capture_output=True, timeout=120, check=False,
+        )  # fmt: skip
+    except subprocess.TimeoutExpired as exc:
+        raise RecordingError("decoding the audio took over 2 minutes") from exc
     if proc.returncode != 0 or not proc.stdout:
         raise RecordingError(f"could not decode the audio: {proc.stderr.decode()[-200:]}")
-    # ffmpeg writes a streaming header with unknown length; re-wrap the samples cleanly.
-    pcm = proc.stdout[proc.stdout.index(b"data") + 8 :]
+    pcm = _samples(proc.stdout)
+    if len(pcm) > MAX_SECONDS * 16000 * 2:
+        raise RecordingError(too_long)
+    # ffmpeg's header has no length (it wrote to a pipe); re-wrap the samples cleanly.
     out = io.BytesIO()
     with wave.open(out, "wb") as w:
         w.setnchannels(1)
@@ -73,6 +92,29 @@ def to_wav(data: bytes) -> bytes:
         w.setframerate(16000)
         w.writeframes(pcm[: len(pcm) // 2 * 2])
     return out.getvalue()
+
+
+def _samples(wav: bytes) -> memoryview:
+    """The samples of ffmpeg's WAV output, found by walking its chunks: tags from the input
+    come first in a LIST chunk and can contain the bytes "data". Writing to a pipe, ffmpeg
+    cannot fill in the data chunk's length, so the samples run to the end of the output."""
+    if wav[:4] != b"RIFF" or wav[8:12] != b"WAVE":
+        raise RecordingError("could not decode the audio: ffmpeg did not return a WAV file")
+    pos, fmt = 12, None
+    while pos + 8 <= len(wav):
+        chunk, size = wav[pos : pos + 4], int.from_bytes(wav[pos + 4 : pos + 8], "little")
+        if chunk == b"fmt ":
+            if size < 16 or pos + 24 > len(wav):
+                raise RecordingError("could not decode the audio: ffmpeg returned a short header")
+            tag, channels, rate, _, _, bits = struct.unpack_from("<HHIIHH", wav, pos + 8)
+            fmt = (tag, channels, rate, bits)
+        elif chunk == b"data":
+            if fmt != (1, 1, 16000, 16):
+                raise RecordingError(f"could not decode the audio: ffmpeg returned {fmt}")
+            end = pos + 8 + size
+            return memoryview(wav)[pos + 8 : min(end, len(wav))]
+        pos += 8 + size + size % 2  # chunks are padded to an even length
+    raise RecordingError("could not decode the audio: ffmpeg returned no samples")
 
 
 def duration(wav: bytes) -> float:
@@ -154,18 +196,22 @@ def _turns(
         return ([SimpleNamespace(start_ms=0, transcript=text, speaker=None)] if text else []), 0
 
     done, failed = 0, 0
+    lock = threading.Lock()  # the counters are shared by the pool's threads
 
     def one(span: tuple[float, float]) -> SimpleNamespace:
         nonlocal done, failed
         a, b = (int(t * 16000) for t in span)
+        lost = False
         try:
             text = asr.transcribe(_wav(pcm[a:b]), mode="PUSH_TO_TALK", keywords=keywords).transcript
         except Exception as exc:  # one lost transmission must not lose the whole shift
             log.warning("transmission at %.1f s not transcribed: %s", span[0], exc)
-            text, failed = "", failed + 1
-        done += 1
-        if progress:
-            progress(done / len(spans))
+            text, lost = "", True
+        with lock:  # progress is reported in order, and only ever goes up
+            failed += lost
+            done += 1
+            if progress:
+                progress(done / len(spans))
         return SimpleNamespace(start_ms=int(span[0] * 1000), transcript=text, speaker=None)
 
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -193,7 +239,9 @@ def analyze(
     progress: Callable[[float], None] | None = None,
 ) -> dict:
     """Transcribe and check a recording. Returns transmissions and alerts, times in seconds.
-    progress, if given, is called with the share of transmissions transcribed so far."""
+    progress, if given, is called with the share of transmissions transcribed so far. A
+    transmission the parser fails on is kept with an empty clearance and counted in
+    failed_parses."""
     wav = to_wav(data)
     seconds = duration(wav)
     if seconds > MAX_SECONDS:
@@ -204,7 +252,18 @@ def analyze(
     keywords = list(PHRASEOLOGY) + [fit(spoken(c.split())) for c in known]
     turns, failed = _turns(wav, asr, keywords, progress)
 
-    monitor = Monitor(parse)
+    failed_parses = 0
+
+    def parse_one(text: str) -> Clearance:
+        nonlocal failed_parses
+        try:
+            return parse(text)
+        except Exception as exc:  # as with ASR: one unparsed transmission, not a lost shift
+            log.warning("transmission not parsed: %s", exc)
+            failed_parses += 1
+            return Clearance(callsign=None, items=[])
+
+    monitor = Monitor(parse_one)
     monitor.traffic = set(known)
     transmissions, alerts = [], []
     for k, turn in enumerate(turns):
@@ -232,6 +291,7 @@ def analyze(
         "wav": wav,
         "duration": seconds,
         "failed_transmissions": failed,
+        "failed_parses": failed_parses,
         "transmissions": transmissions,
         "alerts": [dict(a.to_dict(), t=a.time) for a in alerts],
     }

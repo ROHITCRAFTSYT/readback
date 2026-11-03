@@ -29,51 +29,16 @@ from pathlib import Path
 
 from readback import rules
 from readback.adsb import KNOWN_DESIGNATORS, spoken_callsign
-from readback.compare import same_callsign
 from readback.keywords import PHRASEOLOGY, fit
 from readback.metrics import wer
 from readback.monitor import Monitor
 from readback.normalize import canonical, spoken
 from readback.replay import replay
+from readback.scorecard import CLASSES, Scorer
 from readback.sim import generate
 from readback.tagger.decode import tidy
 
 ROOT = Path(__file__).resolve().parent.parent
-VERTICAL = {"level_bust", "level_off", "wrong_vertical_direction"}
-READBACK_VALUES = {"flight_level", "altitude", "heading", "speed", "squawk", "qnh"}
-CLASSES = [
-    ("Wrong readback value", "readback-value"),
-    ("Callsign confusion", "callsign"),
-    ("Omitted readback item", "missing"),
-    ("Unanswered instruction", "no_readback"),
-    ("Vertical deviation", "track-vertical"),
-    ("Heading deviation", "track-heading"),
-    ("Squawk deviation", "track-squawk"),
-]
-
-
-def label_class(label: dict) -> str:
-    if label["source"] == "track":
-        return "track-vertical" if label["kind"] in VERTICAL else f"track-{label['kind']}"
-    if label["kind"] in READBACK_VALUES:
-        return "readback-value"
-    return label["kind"]
-
-
-def alert_class(alert) -> str:
-    if alert.source == "track":
-        return "track-vertical" if alert.kind in VERTICAL else f"track-{alert.kind}"
-    if alert.kind in ("callsign", "no_readback"):
-        return alert.kind
-    return "missing" if alert.severity == "warning" else "readback-value"
-
-
-def window(cls: str) -> tuple[float, float]:
-    if cls.startswith("track"):
-        return -60.0, 420.0
-    if cls == "no_readback":
-        return -5.0, 40.0
-    return -5.0, 5.0
 
 
 def parse(text: str):
@@ -86,40 +51,24 @@ def score(scenarios: list[dict], use_roles: bool) -> dict:
     false_alarms, error_alerts, warning_alerts, unmatched_warnings = Counter(), 0, 0, 0
     n_tx = 0
     for scen in scenarios:
-        start = scen["start"]
-        labels = [dict(lb, cls=label_class(lb), matched=False) for lb in scen["labels"]]
-        for lb in labels:
-            totals[lb["cls"]] += 1
+        scorer = Scorer(scen)
         monitor = Monitor(parse)
         for ev, alerts, _ in replay(scen, monitor, use_roles=use_roles):
             n_tx += ev["type"] == "tx"
             for alert in alerts:
-                cls = alert_class(alert)
-                lo, hi = window(cls)
-                match = next(
-                    (
-                        lb
-                        for lb in labels
-                        if not lb["matched"]
-                        and lb["cls"] == cls
-                        and same_callsign(alert.callsign, spoken_callsign(lb["callsign"]))
-                        and lo <= alert.time - (start + lb["t"]) <= hi
-                    ),
-                    None,
-                )
                 if alert.severity == "error":
                     error_alerts += 1
                 else:
                     warning_alerts += 1
-                if match is not None:
-                    match["matched"] = True
-                    hits[cls] += 1
-                    if cls.startswith("track"):
-                        delays.append(alert.time - (start + match["t"]))
-                elif alert.severity == "error":
-                    false_alarms[cls] += 1
-                else:
-                    unmatched_warnings += 1
+                scorer.add(alert)
+        for lb in scorer.labels:
+            totals[lb["cls"]] += 1
+            if lb["caught"]:
+                hits[lb["cls"]] += 1
+                if lb["cls"].startswith("track"):
+                    delays.append(lb["delay_s"])
+        false_alarms += scorer.false_alarms
+        unmatched_warnings += scorer.unmatched_warnings
     return {
         "totals": totals,
         "hits": hits,

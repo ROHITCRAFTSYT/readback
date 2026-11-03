@@ -2,11 +2,51 @@
 
 A controller says "CSA1DZ, descend flight level one hundred". The pilot replies "descending flight level one one zero, CSA1DZ". Nobody notices. That missed **readback error** is a classic cause of altitude busts and loss of separation.
 
+| Monitor | Review console |
+|---|---|
+| ![Monitor: radar scope of a simulated approach frequency, with the radio log, the parsed clearances and the readback alerts as they fire](docs/img/monitor.png) | ![Review console: a recording's alerts with reviewer verdicts and notes next to the audio player](docs/img/review.png) |
+
 Readback listens to the radio frequency, works out what each aircraft was cleared to do, checks the pilot's readback against it, and then checks the aircraft's actual track (ADS-B) against the clearance. When something doesn't match it raises an alert with the audio clip and the flight track attached, and an agent can draft the occurrence report.
 
 It runs three ways: on a live frequency with ADS-B, on recordings from the unit's voice recorder (post-incident review, training, quality assurance), and as a replay of simulated traffic with planted errors. For recordings there is a **review console**. Upload a shift's audio and it is checked in the background. Reviewers then give each alert a verdict and a note, the verdicts build an alert register that exports to CSV, and the confirmed share shows how precise Readback actually is on that unit's radio.
 
 Built for the [Meta Global AI Developer Hackathon](https://cerebralvalley.ai/e/meta-ai-developer-hackathon) (Oct 26 – Nov 4, 2026), Indie track, "Push the Frontier" theme.
+
+## Try it in 2 minutes (no API key)
+
+```bash
+git clone https://github.com/ROHITCRAFTSYT/readback && cd readback
+uv sync              # the first sync downloads CPU PyTorch and takes a few minutes
+uv run readback-ui
+```
+
+Open http://127.0.0.1:8000 and press **Run demo**. It replays simulated scenario 7, a Bengaluru approach frequency with planted errors, at 10× through the monitor, with the on-prem tagger as the parser. Alerts fire on the radar scope as the errors happen, and when the replay ends a scorecard shows which planted problems were caught, which were missed, and any false alarms. Opening http://127.0.0.1:8000/#demo starts the same replay.
+
+With Docker instead (no `.env` needed):
+
+```bash
+docker compose up --build      # Compose v2.24+; or: docker build -t readback . && docker run -p 8000:8000 readback
+```
+
+Without a key, the Scenario tab, the tagger and rule-based parsers, the radar, the alerts and the Training dashboard all work offline. `MODEL_API_KEY` in `.env` adds Voice Transcribe, Muse Spark, recording checks and occurrence reports ([Setup](#setup)).
+
+## For judges
+
+- **Creativity.** Readback runs two independent checks on every clearance: what the pilot read back, and what the aircraft then did on ADS-B. Research systems such as HAAWAII check only the first ([How it compares](#how-it-compares)).
+- **Technical ambition.**
+  - A blind real-radio test, hand-labeled and frozen with a SHA-256 manifest before any parser ran on it ([manifest](data/gold/atco2-blind-2.manifest.json), [A parser that trains itself](#a-parser-that-trains-itself)).
+  - Muse Glimmer 30B fine-tuned with QLoRA as a clearance parser ([Fine-tuned Muse Glimmer](#fine-tuned-muse-glimmer)).
+  - A 0.7M-parameter tagger that trains itself on a synthetic curriculum and runs on a CPU ([`TRAINING.md`](TRAINING.md)).
+  - Voice Transcribe biased with the callsigns ADS-B sees in range ([`results/spike-asr.md`](results/spike-asr.md)).
+- **Does it work.**
+  - 2,052 of 2,052 planted problems caught in 200 simulated scenarios, with no false error alerts ([`results/scenario-eval.md`](results/scenario-eval.md)).
+  - 68 of 68 through synthetic radio audio and Voice Transcribe ([`results/scenario-audio-eval.md`](results/scenario-audio-eval.md)).
+  - 98.4% of 311 planted readback errors in real Prague exchanges caught at about 98% precision ([`results/readback-eval.md`](results/readback-eval.md)).
+  - 86.3% exact clearances on the blind seven-airport set with fine-tuned Glimmer ([`results/parser-eval.md`](results/parser-eval.md)).
+  - A real squawk readback error flagged in all 8 runs, cleanly in 3 ([Checking a recording](#checking-a-recording)).
+  - The weak point: Voice Transcribe gets about 57% of callsigns right on accented real radio, so every alert goes to a human reviewer.
+- **Meta Open Weights bonus.** Muse Glimmer 30B (Apache-2.0), fine-tuned on synthetic data only, has the most exact clearances and the best item F1 of the four parsers on the blind set (Spark is better on callsigns). A unit can run it on its own GPU, so transcripts need not leave the building ([Fine-tuned Muse Glimmer](#fine-tuned-muse-glimmer)).
+- **Best Agentic bonus.** For any alert, a Muse Spark agent chooses which tool calls to make (transmissions, ADS-B track, other alerts) and files a schema-checked occurrence report for a human to review. A real report and its tool trace are under [Occurrence reports](#occurrence-reports). The tagger's training is a second loop: it finds its own mistakes, weights practice toward them and keeps a new model only if it does better ([A parser that trains itself](#a-parser-that-trains-itself)).
 
 ## How it works
 
@@ -26,14 +66,14 @@ flowchart LR
 - **Understanding clearances.** Each turn becomes a structured clearance: callsign, instruction, altitude, heading, speed, frequency, runway, squawk.
 - **Two checks.** The readback against the clearance, and the aircraft's ADS-B track against the clearance (for example, cleared to FL100 but still descending through it).
 - **Explaining what happened.** For any alert, a Muse Spark agent pulls the transmissions, ADS-B track and other alerts it needs through tool calls and drafts a structured occurrence report.
-- **On-premises parsing.** Air navigation providers are wary of sending radio content to a cloud service. Readback's own tagger parses clearances on a CPU, with no network. For a unit with a GPU there is also **Muse Glimmer 30B fine-tuned as Readback's parser** (open weights, a 0.1B-parameter LoRA adapter). It is the most accurate parser on the blind real-radio test, and it can run on the unit's own hardware ([below](#fine-tuned-muse-glimmer)).
+- **On-premises parsing.** Air navigation providers are wary of sending radio content to a cloud service. Readback's own tagger parses clearances on a CPU, with no network. For a unit with a GPU there is also **Muse Glimmer 30B fine-tuned as Readback's parser** (open weights, a 0.1B-parameter LoRA adapter). On the blind real-radio test it has the most exact clearances and the best item F1 (Spark is better on callsigns), and it can run on the unit's own hardware ([below](#fine-tuned-muse-glimmer)).
 
 ## Status
 
 | Date | Work |
 |---|---|
 | Oct 27 | Project scaffold. Voice Transcribe client, ATC text normalizer, recognition metrics, and the day-1 go/no-go test of Voice Transcribe on real ATC radio. |
-| Oct 27 | Clearance schema, rule-based clearance parser, readback comparator, Muse Spark parser (structured output), and a text-level evaluation on 432 real controller/pilot exchanges: 98.4% of planted readback errors caught at about 98% precision. |
+| Oct 27 | Clearance schema, rule-based clearance parser, readback comparator, Muse Spark parser (structured output), and a text-level evaluation on real controller/pilot exchanges: 98.4% of planted readback errors caught at about 98% precision (432 pairs in the first run; 441 pairs and 311 planted errors after the pairs were re-mined the same day, as in [`results/readback-eval.md`](results/readback-eval.md)). |
 | Oct 27 | ADS-B conformance checks (level bust, wrong direction, level-off short, heading, squawk), the live frequency monitor, a simulated Bengaluru approach with planted errors and VHF-style radio audio, and a radar-scope web UI with replay and live OpenSky traffic. |
 | Oct 27 | Readback's own clearance parser: a small neural tagger that trains itself continuously on a four-level synthetic curriculum, is tested on 287 hand-labeled real transmissions, and reports to a live training dashboard and [`TRAINING.md`](TRAINING.md). |
 | Oct 27 | A blind real-radio test for the tagger on ATCO2 (seven airports). Set 1 showed the tagger had overfit to Prague; generator v3 widened the phraseology, and a fresh set 2 now measures it. |
@@ -43,6 +83,9 @@ flowchart LR
 | Oct 29 | Generator v4: cut-off clips are labeled only from what can still be heard. Most of the tagger's last level-3 mistakes were labels no parser could learn. |
 | Oct 29 | One product UI: Monitor, Review and Training share a sidebar with navigation, a UTC clock and live status for Voice Transcribe, Spark, Glimmer and the on-prem tagger; metric cards; keyboard shortcuts for reviewers; phone layouts. |
 | Oct 29 | Review console for quality and safety teams. Recordings up to 4 hours are checked as background jobs with progress, and a transmission Voice Transcribe fails on is skipped instead of failing the shift. Everything is kept in SQLite: recordings, reviewer verdicts and notes, and drafted reports, so a restart loses nothing. Alert register as CSV, field precision from the verdicts, an optional access token, a retention period, and a configurable live airspace. |
+| Oct 29 | Recordings carry a unit and a frequency. The list, totals, field precision and the CSV register filter by position, and `PATCH /api/recordings/{id}` re-files a recording. The API reference at `/docs` is grouped by tag. The job queue survives restarts: an upload is kept until its check finishes, unfinished checks are requeued oldest first, and each check is claimed once. |
+| Oct 29–30 | Retrained on generator v4, the tagger passed level 3 in round 384, which marks the run optimal, and moved on to level 4 (stress). Training continues; as of Nov 3, 01:02 UTC, the champion is round 1233 ([numbers](#tagger-after-the-freeze)). The live champion is in [`TRAINING.md`](TRAINING.md). |
+| Nov 2 | Hardening and polish. The occurrence-report agent and the replay stream report a clear error instead of failing silently. Uploads are written to disk as they arrive, and new ones get a 503 once `READBACK_MAX_QUEUE` checks are waiting or running. `GET /readyz` and `GET /metrics` (Prometheus), and a clean shutdown that closes the store. A replay ends with a scorecard: planted problems caught and missed, and false alarms. The Monitor opens on an onboarding card with **Run demo** and shows errors in a banner; the Review console works by keyboard and screen reader and says when the server can't be reached. `docker-compose.yml`. |
 
 Everything in this repository was written during the hackathon.
 
@@ -52,7 +95,7 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). ffmpeg is needed for
 
 ```bash
 uv sync
-cp .env.example .env   # then add your Meta Model API key
+cp .env.example .env   # optional: add your Meta Model API key for the Muse features
 uv run readback-ui     # http://127.0.0.1:8000
 uv run python scripts/fetch_data.py   # only for the evaluations
 ```
@@ -61,8 +104,11 @@ Or with Docker (ffmpeg, espeak-ng and the CPU tagger included):
 
 ```bash
 docker build -t readback .
-docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
+docker run -p 8000:8000 -v readback-data:/data readback                  # scenarios and the tagger, no key
+docker run -p 8000:8000 --env-file .env -v readback-data:/data readback  # with the Muse features (after cp .env.example .env)
 ```
+
+Or with Docker Compose (v2.24 or later), which does both: `docker compose up --build`. [`docker-compose.yml`](docker-compose.yml) runs one `readback` service on port 8000 with a named volume for `/data` and one for the Voice Transcribe and parser caches, reads `.env` only if it exists, restarts unless stopped, and has a health check on `/healthz`.
 
 | Variable | Default | |
 |---|---|---|
@@ -76,9 +122,10 @@ docker run -p 8000:8000 --env-file .env -v readback-data:/data readback
 | `READBACK_RETENTION_DAYS` | `0` (keep) | Delete recordings, with their verdicts and reports, after this many days. |
 | `READBACK_WORKERS` | `2` | Recordings checked at the same time. Each job is claimed once, so a check never runs twice. |
 | `READBACK_MAX_UPLOAD_MB` | `500` | Largest upload accepted. |
+| `READBACK_MAX_QUEUE` | `20` | Recording checks queued or running at once. Past that, a new upload gets a 503 with `Retry-After` until the queue drains. |
 | `READBACK_LIVE_CENTER`, `READBACK_LIVE_NAME` | Bengaluru | Centre (`"lat,lon"`) and name of the airspace the Live tab shows. |
 
-`GET /healthz` reports the parser in use, whether the Muse models are available, and whether a token is required.
+`GET /healthz` reports the parser in use, whether the Muse models are available, and whether a token is required. `GET /readyz` returns 503 when the store isn't answering, and otherwise how many checks are queued and running. `GET /metrics` gives counts and job timings in Prometheus text format, with no recording names, units or callsigns.
 
 ## Day-1 go/no-go test
 
@@ -134,15 +181,27 @@ These pairs are from Prague, the phraseology the rules were written for, and the
 | Test set | Parser | Exact | Item F1 | Callsign |
 |---|---|---|---|---|
 | Prague (UWB-ATCC), held-out half (138) | rule-based | 67.4% | 87.4% | 76.8% |
-| | tagger | **90.6%** | **97.2%** | 94.2% |
+| | tagger (round 248) | **90.6%** | **97.2%** | 94.2% |
 | | Muse Spark | 87.7% | 95.7% | 94.2% |
 | | Muse Glimmer, fine-tuned | **92.0%** | 95.1% | **97.1%** |
 | **ATCO2 set 2, blind**, seven airports (263) | rule-based | 34.6% | 86.6% | 35.7% |
-| | tagger | 80.2% | 91.7% | 86.3% |
+| | tagger (round 248) | 80.2% | 91.7% | 86.3% |
 | | Muse Spark | 85.2% | 90.5% | **95.1%** |
 | | Muse Glimmer, fine-tuned | **86.3%** | **92.1%** | 92.8% |
 
 *Exact* means the callsign and every item are right. Spark is best on callsigns it has never seen. The fine-tuned Glimmer is best overall on the blind set: most exact clearances and the best item F1, with fewer false alarms on real pairs than Spark. The tagger is close on clearance items, runs offline on a CPU in milliseconds, and raises fewer false alarms still. The UI lets you pick any of them. Spark's blind score was 85.9% in an earlier run; its answers vary slightly from run to run.
+
+### Tagger after the freeze
+
+*Update, Nov 3.* The tagger numbers above are its round-248 champion, trained on generator v3 and scored on Oct 29; they stay as they are. Generator v4 came after the set 2 freeze ([below](#a-parser-that-trains-itself)), and the tagger kept training on it. As of Nov 3, 01:02 UTC, its champion is round 1233. Training continues, so the live champion and its scores are in [`TRAINING.md`](TRAINING.md) and [`training/status.json`](training/status.json). Round 1233's scores, next to round 248:
+
+| Test set | Round 248 exact | Round 1233 exact | Round 248 item F1 | Round 1233 item F1 | Round 248 callsign | Round 1233 callsign |
+|---|---|---|---|---|---|---|
+| **ATCO2 set 2, blind** (263) | 80.2% | 84.8% | 91.7% | 93.3% | 86.3% | 89.7% |
+| Prague (UWB-ATCC), held-out half (138) | 90.6% | 89.1% | 97.2% | 98.1% | 94.2% | 91.3% |
+| ATCO2 set 1 (retired, not blind) (265) | 83.0% | 86.0% | 95.4% | 94.4% | 85.7% | 90.2% |
+
+All three blind scores went up. On the held-out Prague half, item F1 went up and exact and callsigns went down slightly. A candidate is promoted for doing better on the synthetic validation set; the Prague dev half can only block one that loses ground there. The blind and held-out scores are reported for each champion but never used to promote one. The readback-pair numbers above are also round 248.
 
 Several of the flagged real pairs look like genuine readback errors in the recordings: for example, runway 31 read back as 13, and squawk 1404 read back as 1402.
 
@@ -223,6 +282,9 @@ All of it is kept in one SQLite file plus the audio under `READBACK_DATA`. Delet
 | `GET /api/alerts.csv?unit&frequency`, `GET /api/recordings/{id}/alerts.csv` | The alert register, with unit and frequency columns. |
 | `DELETE /api/recordings/{id}` | Delete a recording and everything about it. |
 | `POST /api/analyze` | Check a short recording and wait for the result (scripts). |
+| `GET /api/replay/{seed}?speed&listen&parser` | A scenario replay as server-sent events. The `end` event carries the planted problems and a scorecard: planted, caught, false error alerts, and per problem whether and how fast it was caught. |
+| `GET /readyz` | Readiness: 503 when the store isn't answering, otherwise queued and running checks and the queue limit. |
+| `GET /metrics` | Prometheus text: recordings by status, queue depth, alerts, verdicts, job timings and uptime. |
 
 The full, tagged API reference (OpenAPI) is at `/docs` on a running server.
 
@@ -238,7 +300,19 @@ Readback is **decision support for review**, not operational alerting. Its place
 
 ## Occurrence reports
 
-Every alert has a **Draft occurrence report** button. A Muse Spark agent (`readback.occurrence`) gets the alert and four tools: `transmissions` (filtered by callsign and time), `adsb_track` (sampled every 10 s), `alerts`, and `submit_report`. It decides what evidence to pull, then files a report against a strict schema: title, occurrence type, risk, summary, timeline, contributing factors, recommended actions, and a statement of evidence quality. The report lists the tool calls it made and downloads as Markdown. On the Prague recording above it made eight tool calls in 31 s and noted that the evidence came from speech recognition, with no ADS-B. It is a draft for a safety officer to review, not a filed report.
+Every alert has a **Draft occurrence report** button. A Muse Spark agent (`readback.occurrence`) gets the alert and four tools: `transmissions` (filtered by callsign and time), `adsb_track` (sampled every 10 s), `alerts`, and `submit_report`. It decides what evidence to pull, then files a report against a strict schema: title, occurrence type, risk, summary, timeline, contributing factors, recommended actions, and a statement of evidence quality. The report lists the tool calls it made and downloads as Markdown. On the Prague recording above, one run made eight tool calls in 31 s and noted that the evidence came from speech recognition, with no ADS-B. It is a draft for a safety officer to review, not a filed report.
+
+The draft kept with that recording, for the squawk alert (excerpt):
+
+> **Readback error: 1402 for 1404** (risk: medium)
+>
+> At 00:12 the controller cleared SKYTRAVEL 1102 with squawk 1404. At 00:27 the pilot read back including 'one four zero two'. No ADS-B track was available to confirm the squawk set, and no other alerts were raised.
+>
+> **Recommended action:** Challenge incorrect squawk readback and obtain correct readback of 1404
+>
+> **Evidence:** Transcript-only evidence with possible speech-recognition errors; no ADS-B track available to confirm squawk set, so the readback value is not independently confirmed.
+
+The tool calls it chose, in order: `transmissions()`, `alerts(callsign='skytravel 1 1 0 2')`, `transmissions(callsign='skytravel 1 1 0 2')`, `adsb_track(callsign='skytravel 1 1 0 2')`, `alerts()`, `transmissions(callsign='skytravel 1 1 0 1')`, then `submit_report`. The last lookup was for SKYTRAVEL 1101, a similar callsign that was also heard on frequency.
 
 ## How it compares
 

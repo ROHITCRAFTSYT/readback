@@ -1,7 +1,7 @@
 {
   "started": "2026-10-27T09:02:50Z",
   "generator_version": 4,
-  "round": 1409,
+  "round": 1417,
   "level": 4,
   "levels_passed": [
     {
@@ -23,20 +23,20 @@
   "optimal": true,
   "optimal_since": "2026-10-29T10:07:42Z",
   "lr": 0.000125,
-  "stagnant": 176,
+  "stagnant": 184,
   "focus": {
-    "kind:cleared_for_takeoff": 1.55,
-    "kind:direct_to": 1.94,
-    "kind:frequency": 1.37,
-    "kind:hold_short": 1.22,
-    "kind:line_up": 1.25,
-    "kind:qnh": 1.13,
-    "noise:distractor": 1.05,
-    "noise:hesitation": 1.2,
-    "noise:truncate": 1.24
+    "kind:cleared_for_takeoff": 1.7,
+    "kind:cleared_to_land": 1.25,
+    "kind:direct_to": 1.5,
+    "kind:frequency": 1.24,
+    "kind:line_up": 1.99,
+    "kind:runway": 1.44,
+    "noise:hesitation": 1.03,
+    "noise:repeat": 1.22,
+    "noise:truncate": 1.32
   },
-  "examples_seen": 27653056,
-  "train_seconds": 215820.6,
+  "examples_seen": 27808540,
+  "train_seconds": 220050.6,
   "champion": {
     "round": 1233,
     "val": {
@@ -334,7 +334,7 @@
       }
     }
   },
-  "updated": "2026-11-04T07:52:06Z",
+  "updated": "2026-11-04T14:07:12Z",
   "reported_sets": {
     "blind": "dc90df80264b",
     "atco2_seen": "1fe59166f67d"

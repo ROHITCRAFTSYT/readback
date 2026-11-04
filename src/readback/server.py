@@ -383,7 +383,7 @@ def heard(scen: dict, seed: int) -> Iterator[dict]:
             continue
         rel = _audio(scen, seed, i, ev)
         wav = (SCENARIOS / rel).read_bytes()
-        key = hashlib.sha1(wav + json.dumps(keywords).encode()).hexdigest()
+        key = hashlib.sha1(wav + json.dumps(keywords).encode(), usedforsecurity=False).hexdigest()
         cache = ASR_CACHE / f"{key}.json"
         rec = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else None
         if rec is None:

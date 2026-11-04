@@ -53,7 +53,11 @@ class GoldExample:
 
 
 def split_of(utterance_id: str) -> str:
-    return "dev" if hashlib.sha1(utterance_id.encode()).digest()[0] % 2 == 0 else "test"
+    return (
+        "dev"
+        if hashlib.sha1(utterance_id.encode(), usedforsecurity=False).digest()[0] % 2 == 0
+        else "test"
+    )
 
 
 def _join(labels: Path, corpus: Path, dataset: str, split: Callable[[str], str]) -> list:

@@ -26,6 +26,10 @@ STATUSES = ("queued", "running", "done", "failed")
 COLUMNS = ("id, name, created, status, progress, error, parser, callsigns, unit, frequency, "
            "duration, summary")  # fmt: skip
 
+# The analyses columns update() may set (everything but the id).
+SETTABLE = {"name", "created", "status", "progress", "error", "parser", "callsigns", "unit",
+           "frequency", "duration", "summary", "log"}  # fmt: skip
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS analyses (
     id TEXT PRIMARY KEY,
@@ -103,6 +107,9 @@ class Store:
                 fields[key] = json.dumps(fields[key])
         if "status" in fields and fields["status"] not in STATUSES:
             raise ValueError(fields["status"])
+        unknown = set(fields) - SETTABLE  # column names go into the SQL text; values never do
+        if unknown:
+            raise ValueError(f"unknown fields: {', '.join(sorted(unknown))}")
         cols = ", ".join(f"{k} = ?" for k in fields)
         self._run(f"UPDATE analyses SET {cols} WHERE id = ?", (*fields.values(), aid))
 

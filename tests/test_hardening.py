@@ -301,3 +301,12 @@ def test_retention_runs_on_a_timer(tmp_path, monkeypatch):
                 break
             time.sleep(0.05)
         assert st.get(old) is None
+
+
+def test_store_update_only_sets_known_columns(tmp_path):
+    st = Store(tmp_path)
+    aid = st.create("x", "rules")
+    with pytest.raises(ValueError, match="unknown fields"):
+        st.update(aid, **{"name = 'pwned', status": "done"})
+    st.update(aid, unit="LKPR TWR")
+    assert st.get(aid)["unit"] == "LKPR TWR" and st.get(aid)["name"] == "x"

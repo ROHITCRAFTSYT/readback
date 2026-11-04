@@ -179,8 +179,12 @@ class Trainer:
 
     def _reported_sets(self) -> dict[str, str]:
         """Which ATCO2 sets the reported scores are on (a short hash of their ids)."""
-        return {k: hashlib.sha1("|".join(g.id for g in rows).encode()).hexdigest()[:12]
-                for k, rows in self.reported.items()}  # fmt: skip
+        return {
+            k: hashlib.sha1(
+                "|".join(g.id for g in rows).encode(), usedforsecurity=False
+            ).hexdigest()[:12]
+            for k, rows in self.reported.items()
+        }
 
     def _report(self, tagger: Tagger) -> dict:
         """Scores on the ATCO2 sets, for reporting only."""

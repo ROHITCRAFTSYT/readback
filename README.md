@@ -12,6 +12,8 @@ It runs three ways: on a live frequency with ADS-B, on recordings from the unit'
 
 Built for the [Meta Global AI Developer Hackathon](https://cerebralvalley.ai/e/meta-ai-developer-hackathon) (Oct 26 – Nov 4, 2026), Indie track, "Push the Frontier" theme.
 
+**Demo video (3 min):** [youtu.be/JUVaLpOMgj8](https://youtu.be/JUVaLpOMgj8) · **On X:** [the 2-minute cut and results](https://x.com/6easap/status/2117842598119473499)
+
 ## Try it in 2 minutes (no API key)
 
 ```bash

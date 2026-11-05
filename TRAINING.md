@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1524, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1534, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 66.5 h on 29,901,106 examples (started 2026-10-27, updated 2026-11-05 05:29 UTC)
+- **Trained for:** 67.5 h on 30,096,364 examples (started 2026-10-27, updated 2026-11-05 06:33 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×1.6
-- `kind:hold_short` ×1.36
-- `kind:direct_to` ×1.35
-- `kind:runway` ×1.22
-- `noise:repeat` ×1.14
-- `kind:cleared_to_land` ×1.11
-- `kind:heading` ×1.1
-- `kind:altitude` ×1.07
+- `kind:cleared_for_takeoff` ×1.64
+- `kind:runway` ×1.58
+- `kind:frequency` ×1.29
+- `kind:hold_short` ×1.28
+- `kind:direct_to` ×1.18
+- `kind:cleared_to_land` ×1.17
+- `kind:heading` ×1.14
+- `kind:altitude` ×1.1
 
 ## Daily fresh checks
 
@@ -75,18 +75,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 1534 | 4 | 97.5% | 98.0% |  |  |
+| 1533 | 4 | 97.5% | 95.5% |  |  |
+| 1532 | 4 | 97.4% | 97.5% |  |  |
+| 1531 | 4 | 97.8% | 97.0% |  |  |
+| 1530 | 4 | 97.8% | 97.0% |  |  |
+| 1529 | 4 | 97.5% | 98.5% |  |  |
+| 1528 | 4 | 97.7% | 95.6% |  |  |
+| 1527 | 4 | 97.7% | 96.5% |  |  |
+| 1526 | 4 | 97.4% | 97.0% |  |  |
+| 1525 | 4 | 97.8% | 98.5% |  |  |
 | 1524 | 4 | 97.5% | 96.5% |  |  |
 | 1523 | 4 | 97.5% | 95.1% |  |  |
 | 1522 | 4 | 97.8% | 97.0% |  |  |
 | 1521 | 4 | 97.5% | 96.0% |  |  |
 | 1520 | 4 | 97.8% | 96.5% |  |  |
-| 1519 | 4 | 97.8% | 97.5% |  |  |
-| 1518 | 4 | 97.5% | 95.5% |  |  |
-| 1517 | 4 | 97.6% | 98.5% |  |  |
-| 1516 | 4 | 97.5% | 97.0% |  |  |
-| 1515 | 4 | 97.9% | 96.5% |  |  |
-| 1514 | 4 | 97.9% | 96.0% |  |  |
-| 1513 | 4 | 97.5% | 98.0% |  |  |
-| 1512 | 4 | 97.5% | 97.5% |  |  |
-| 1511 | 4 | 97.8% | 95.6% |  |  |
-| 1510 | 4 | 97.5% | 95.6% |  |  |

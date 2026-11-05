@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1678, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1707, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 76.3 h on 32,912,272 examples (started 2026-10-27, updated 2026-11-05 18:11 UTC)
+- **Trained for:** 77.2 h on 33,479,884 examples (started 2026-10-27, updated 2026-11-05 19:12 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_to_land` ×1.95
-- `kind:direct_to` ×1.68
-- `kind:hold_short` ×1.32
-- `noise:correction` ×1.24
-- `kind:cleared_for_takeoff` ×1.18
-- `noise:truncate` ×1.17
-- `kind:altitude` ×1.08
-- `kind:qnh` ×1.03
+- `kind:cleared_for_takeoff` ×2.54
+- `noise:repeat` ×1.37
+- `kind:speed` ×1.35
+- `noise:truncate` ×1.35
+- `kind:heading` ×1.33
+- `kind:direct_to` ×1.14
+- `kind:frequency` ×1.13
+- `noise:misheard` ×1.11
 
 ## Daily fresh checks
 
@@ -70,23 +70,24 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2026-11-03 | 499 | 98.2% | 98.1% | 91.5% |
 | 2026-11-04 | 1233 | 98.6% | 98.1% | 93.3% |
 | 2026-11-05 | 1233 | 98.7% | 98.1% | 93.3% |
+| 2026-11-06 | 1233 | 98.9% | 98.1% | 93.3% |
 
 ## Recent rounds
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 1678 | 4 | 97.5% | 98.5% |  |  |
-| 1677 | 4 | 97.9% | 97.0% |  |  |
-| 1676 | 4 | 97.7% | 95.6% |  |  |
-| 1675 | 4 | 97.8% | 95.6% |  |  |
-| 1674 | 4 | 97.5% | 96.0% |  |  |
-| 1673 | 4 | 97.7% | 96.0% |  |  |
-| 1672 | 4 | 97.7% | 98.5% |  |  |
-| 1671 | 4 | 97.8% | 96.5% |  |  |
-| 1670 | 4 | 97.6% | 96.1% |  |  |
-| 1669 | 4 | 97.5% | 96.5% |  |  |
-| 1668 | 4 | 97.7% | 96.5% |  |  |
-| 1667 | 4 | 97.5% | 96.1% |  |  |
-| 1666 | 4 | 97.7% | 95.6% |  |  |
-| 1665 | 4 | 97.8% | 96.5% |  |  |
-| 1664 | 4 | 97.8% | 97.0% |  |  |
+| 1707 | 4 | 97.5% | 96.5% |  |  |
+| 1706 | 4 | 97.5% | 97.0% |  |  |
+| 1705 | 4 | 97.5% | 96.5% |  |  |
+| 1704 | 4 | 97.6% | 95.1% |  |  |
+| 1703 | 4 | 97.5% | 98.5% |  |  |
+| 1702 | 4 | 97.7% | 96.0% |  |  |
+| 1701 | 4 | 97.5% | 98.5% |  |  |
+| 1700 | 4 | 97.5% | 97.5% |  |  |
+| 1699 | 4 | 97.7% | 96.0% |  |  |
+| 1698 | 4 | 97.9% | 96.5% |  |  |
+| 1697 | 4 | 97.5% | 99.0% |  |  |
+| 1696 | 4 | 97.5% | 98.5% |  |  |
+| 1695 | 4 | 97.7% | 96.5% |  |  |
+| 1694 | 4 | 97.8% | 98.0% |  |  |
+| 1693 | 4 | 97.5% | 95.5% |  |  |

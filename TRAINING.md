@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1805, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1835, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 81.0 h on 35,396,806 examples (started 2026-10-27, updated 2026-11-06 16:37 UTC)
+- **Trained for:** 81.9 h on 35,983,408 examples (started 2026-10-27, updated 2026-11-06 17:38 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×2.16
-- `noise:correction` ×2.02
-- `kind:cleared_to_land` ×1.67
-- `kind:direct_to` ×1.59
-- `kind:frequency` ×1.34
+- `kind:cleared_for_takeoff` ×1.8
+- `kind:hold_short` ×1.77
+- `kind:direct_to` ×1.48
+- `noise:truncate` ×1.39
+- `noise:hesitation` ×1.3
 - `kind:heading` ×1.1
-- `noise:hesitation` ×1.1
-- `noise:truncate` ×1.1
+- `noise:distractor` ×1.09
+- `noise:station` ×1.05
 
 ## Daily fresh checks
 
@@ -76,18 +76,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 1805 | 4 | 97.7% | 98.5% |  |  |
-| 1804 | 4 | 97.7% | 96.5% |  |  |
-| 1803 | 4 | 97.8% | 96.5% |  |  |
-| 1802 | 4 | 97.8% | 96.1% |  |  |
-| 1801 | 4 | 97.5% | 98.0% |  |  |
-| 1800 | 4 | 97.8% | 96.5% |  |  |
-| 1799 | 4 | 97.7% | 97.5% |  |  |
-| 1798 | 4 | 97.9% | 96.5% |  |  |
-| 1797 | 4 | 97.7% | 96.5% |  |  |
-| 1796 | 4 | 97.9% | 96.1% |  |  |
-| 1795 | 4 | 97.8% | 94.6% |  |  |
-| 1794 | 4 | 97.8% | 95.5% |  |  |
-| 1793 | 4 | 97.7% | 95.6% |  |  |
-| 1792 | 4 | 97.7% | 97.5% |  |  |
-| 1791 | 4 | 97.8% | 97.1% |  |  |
+| 1835 | 4 | 97.6% | 96.1% |  |  |
+| 1834 | 4 | 97.6% | 97.5% |  |  |
+| 1833 | 4 | 97.6% | 96.0% |  |  |
+| 1832 | 4 | 97.7% | 96.0% |  |  |
+| 1831 | 4 | 97.8% | 95.6% |  |  |
+| 1830 | 4 | 97.7% | 95.0% |  |  |
+| 1829 | 4 | 97.4% | 95.6% |  |  |
+| 1828 | 4 | 97.5% | 96.5% |  |  |
+| 1827 | 4 | 97.7% | 96.5% |  |  |
+| 1826 | 4 | 97.7% | 98.5% |  |  |
+| 1825 | 4 | 97.5% | 96.0% |  |  |
+| 1824 | 4 | 97.5% | 97.0% |  |  |
+| 1823 | 4 | 97.8% | 96.5% |  |  |
+| 1822 | 4 | 97.7% | 96.1% |  |  |
+| 1821 | 4 | 98.0% | 98.0% |  |  |

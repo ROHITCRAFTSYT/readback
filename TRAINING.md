@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1880, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1899, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 85.3 h on 36,863,014 examples (started 2026-10-27, updated 2026-11-07 08:44 UTC)
+- **Trained for:** 86.2 h on 37,234,552 examples (started 2026-10-27, updated 2026-11-07 09:45 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×1.92
-- `kind:heading` ×1.52
-- `kind:cleared_for_takeoff` ×1.43
-- `noise:truncate` ×1.37
-- `kind:cleared_to_land` ×1.34
-- `noise:hesitation` ×1.18
-- `kind:runway` ×1.17
-- `kind:line_up` ×1.15
+- `kind:cleared_for_takeoff` ×1.62
+- `kind:direct_to` ×1.42
+- `kind:hold_short` ×1.4
+- `kind:frequency` ×1.35
+- `noise:truncate` ×1.21
+- `noise:misheard` ×1.13
+- `noise:correction` ×1.12
+- `kind:line_up` ×1.08
 
 ## Daily fresh checks
 
@@ -77,18 +77,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 1880 | 4 | 97.8% | 97.5% |  |  |
-| 1879 | 4 | 97.5% | 97.5% |  |  |
-| 1878 | 4 | 97.5% | 96.5% |  |  |
-| 1877 | 4 | 97.7% | 96.1% |  |  |
-| 1876 | 4 | 97.3% | 95.5% |  |  |
-| 1875 | 4 | 97.7% | 96.5% |  |  |
-| 1874 | 4 | 97.5% | 96.0% |  |  |
-| 1873 | 4 | 97.5% | 96.5% |  |  |
-| 1872 | 4 | 97.5% | 96.5% |  |  |
-| 1871 | 4 | 97.5% | 98.0% |  |  |
-| 1870 | 4 | 97.8% | 96.1% |  |  |
-| 1869 | 4 | 97.5% | 97.0% |  |  |
-| 1868 | 4 | 97.7% | 96.5% |  |  |
-| 1867 | 4 | 97.2% | 97.0% |  |  |
-| 1866 | 4 | 97.7% | 96.0% |  |  |
+| 1899 | 4 | 97.5% | 97.0% |  |  |
+| 1898 | 4 | 97.8% | 96.5% |  |  |
+| 1897 | 4 | 97.5% | 97.0% |  |  |
+| 1896 | 4 | 97.9% | 97.5% |  |  |
+| 1895 | 4 | 97.9% | 95.6% |  |  |
+| 1894 | 4 | 97.5% | 96.5% |  |  |
+| 1893 | 4 | 97.6% | 96.0% |  |  |
+| 1892 | 4 | 97.7% | 97.5% |  |  |
+| 1891 | 4 | 97.8% | 96.5% |  |  |
+| 1890 | 4 | 97.7% | 96.0% |  |  |
+| 1889 | 4 | 97.9% | 95.6% |  |  |
+| 1888 | 4 | 97.7% | 97.5% |  |  |
+| 1887 | 4 | 97.4% | 96.5% |  |  |
+| 1886 | 4 | 97.6% | 97.0% |  |  |
+| 1885 | 4 | 97.7% | 97.5% |  |  |

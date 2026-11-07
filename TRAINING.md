@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1924, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1935, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 87.1 h on 37,723,942 examples (started 2026-10-27, updated 2026-11-07 10:45 UTC)
+- **Trained for:** 88.1 h on 37,938,940 examples (started 2026-10-27, updated 2026-11-07 11:49 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,13 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×3.16
-- `kind:direct_to` ×1.53
-- `kind:cleared_to_land` ×1.43
-- `kind:line_up` ×1.24
-- `noise:truncate` ×1.18
-- `kind:cleared_for_takeoff` ×1.13
-- `noise:station` ×1.09
-- `noise:repeat` ×1.08
+- `kind:hold_short` ×2.16
+- `kind:squawk` ×1.65
+- `kind:runway` ×1.56
+- `kind:cleared_to_land` ×1.54
+- `noise:truncate` ×1.44
+- `noise:misheard` ×1.11
+- `kind:cleared_for_takeoff` ×1.1
 
 ## Daily fresh checks
 
@@ -77,18 +76,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 1935 | 4 | 97.7% | 96.0% |  |  |
+| 1934 | 4 | 97.7% | 95.6% |  |  |
+| 1933 | 4 | 97.6% | 95.6% |  |  |
+| 1932 | 4 | 97.7% | 96.5% |  |  |
+| 1931 | 4 | 97.9% | 96.0% |  |  |
+| 1930 | 4 | 97.5% | 95.6% |  |  |
+| 1929 | 4 | 97.5% | 96.5% |  |  |
+| 1928 | 4 | 97.9% | 96.1% |  |  |
+| 1927 | 4 | 97.4% | 96.5% |  |  |
+| 1926 | 4 | 97.5% | 97.0% |  |  |
+| 1925 | 4 | 97.7% | 98.5% |  |  |
 | 1924 | 4 | 97.5% | 96.5% |  |  |
 | 1923 | 4 | 97.5% | 97.0% |  |  |
 | 1922 | 4 | 97.7% | 95.6% |  |  |
 | 1921 | 4 | 97.8% | 96.5% |  |  |
-| 1920 | 4 | 97.7% | 98.0% |  |  |
-| 1919 | 4 | 97.7% | 96.1% |  |  |
-| 1918 | 4 | 97.8% | 96.5% |  |  |
-| 1917 | 4 | 97.8% | 96.5% |  |  |
-| 1916 | 4 | 97.7% | 96.5% |  |  |
-| 1915 | 4 | 97.8% | 97.0% |  |  |
-| 1914 | 4 | 97.7% | 96.0% |  |  |
-| 1913 | 4 | 97.7% | 96.5% |  |  |
-| 1912 | 4 | 97.5% | 95.6% |  |  |
-| 1911 | 4 | 97.7% | 94.6% |  |  |
-| 1910 | 4 | 97.5% | 95.1% |  |  |

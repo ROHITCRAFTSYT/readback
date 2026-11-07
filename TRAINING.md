@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 2032, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 2054, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 91.8 h on 39,837,322 examples (started 2026-10-27, updated 2026-11-07 15:57 UTC)
+- **Trained for:** 92.7 h on 40,267,702 examples (started 2026-10-27, updated 2026-11-07 16:59 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×1.94
-- `kind:hold_short` ×1.76
-- `kind:direct_to` ×1.63
-- `kind:line_up` ×1.3
-- `noise:truncate` ×1.21
-- `kind:cleared_to_land` ×1.18
-- `noise:hesitation` ×1.11
-- `kind:frequency` ×1.05
+- `kind:line_up` ×1.84
+- `kind:heading` ×1.54
+- `kind:hold_short` ×1.42
+- `kind:direct_to` ×1.39
+- `kind:frequency` ×1.27
+- `kind:cleared_to_land` ×1.22
+- `noise:truncate` ×1.16
+- `noise:hesitation` ×1.14
 
 ## Daily fresh checks
 
@@ -77,18 +77,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 2032 | 4 | 97.6% | 97.5% |  |  |
-| 2031 | 4 | 97.7% | 96.5% |  |  |
-| 2030 | 4 | 97.8% | 96.5% |  |  |
-| 2029 | 4 | 97.7% | 97.5% |  |  |
-| 2028 | 4 | 97.8% | 97.0% |  |  |
-| 2027 | 4 | 97.5% | 97.5% |  |  |
-| 2026 | 4 | 97.6% | 97.5% |  |  |
-| 2025 | 4 | 97.7% | 96.1% |  |  |
-| 2024 | 4 | 97.5% | 96.5% |  |  |
-| 2023 | 4 | 97.6% | 97.0% |  |  |
-| 2022 | 4 | 97.7% | 95.5% |  |  |
-| 2021 | 4 | 97.6% | 96.5% |  |  |
-| 2020 | 4 | 97.5% | 98.0% |  |  |
-| 2019 | 4 | 97.6% | 97.5% |  |  |
-| 2018 | 4 | 97.6% | 97.5% |  |  |
+| 2054 | 4 | 97.5% | 97.0% |  |  |
+| 2053 | 4 | 97.7% | 96.5% |  |  |
+| 2052 | 4 | 97.5% | 95.0% |  |  |
+| 2051 | 4 | 97.9% | 96.0% |  |  |
+| 2050 | 4 | 97.7% | 97.0% |  |  |
+| 2049 | 4 | 97.8% | 96.5% |  |  |
+| 2048 | 4 | 97.7% | 97.5% |  |  |
+| 2047 | 4 | 97.5% | 97.5% |  |  |
+| 2046 | 4 | 97.7% | 97.0% |  |  |
+| 2045 | 4 | 97.8% | 96.5% |  |  |
+| 2044 | 4 | 97.7% | 96.5% |  |  |
+| 2043 | 4 | 97.6% | 94.6% |  |  |
+| 2042 | 4 | 97.6% | 96.5% |  |  |
+| 2041 | 4 | 97.4% | 98.5% |  |  |
+| 2040 | 4 | 97.5% | 94.1% |  |  |

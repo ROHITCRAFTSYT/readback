@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1977, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 2006, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 89.9 h on 38,761,018 examples (started 2026-10-27, updated 2026-11-07 13:53 UTC)
+- **Trained for:** 90.8 h on 39,328,444 examples (started 2026-10-27, updated 2026-11-07 14:54 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:line_up` ×1.57
-- `noise:truncate` ×1.55
-- `kind:frequency` ×1.54
-- `noise:misheard` ×1.49
-- `kind:hold_short` ×1.44
-- `kind:direct_to` ×1.34
-- `kind:cleared_for_takeoff` ×1.24
-- `kind:squawk` ×1.23
+- `kind:cleared_for_takeoff` ×1.91
+- `kind:frequency` ×1.84
+- `noise:truncate` ×1.63
+- `kind:direct_to` ×1.33
+- `kind:runway` ×1.32
+- `noise:misheard` ×1.2
+- `kind:line_up` ×1.14
+- `noise:greeting` ×1.05
 
 ## Daily fresh checks
 
@@ -77,18 +77,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 1977 | 4 | 97.6% | 96.5% |  |  |
-| 1976 | 4 | 97.9% | 96.1% |  |  |
-| 1975 | 4 | 97.9% | 95.6% |  |  |
-| 1974 | 4 | 97.6% | 97.0% |  |  |
-| 1973 | 4 | 97.8% | 97.0% |  |  |
-| 1972 | 4 | 97.5% | 96.0% |  |  |
-| 1971 | 4 | 97.7% | 97.0% |  |  |
-| 1970 | 4 | 97.5% | 98.0% |  |  |
-| 1969 | 4 | 97.8% | 97.5% |  |  |
-| 1968 | 4 | 97.6% | 96.5% |  |  |
-| 1967 | 4 | 97.5% | 95.1% |  |  |
-| 1966 | 4 | 97.8% | 95.1% |  |  |
-| 1965 | 4 | 97.8% | 97.5% |  |  |
-| 1964 | 4 | 97.8% | 97.0% |  |  |
-| 1963 | 4 | 97.5% | 97.0% |  |  |
+| 2006 | 4 | 97.7% | 96.5% |  |  |
+| 2005 | 4 | 97.7% | 97.5% |  |  |
+| 2004 | 4 | 97.7% | 96.5% |  |  |
+| 2003 | 4 | 97.7% | 95.6% |  |  |
+| 2002 | 4 | 97.4% | 96.0% |  |  |
+| 2001 | 4 | 97.8% | 98.0% |  |  |
+| 2000 | 4 | 97.6% | 98.5% |  |  |
+| 1999 | 4 | 97.5% | 96.1% |  |  |
+| 1998 | 4 | 97.7% | 95.6% |  |  |
+| 1997 | 4 | 98.0% | 96.5% |  |  |
+| 1996 | 4 | 97.9% | 97.5% |  |  |
+| 1995 | 4 | 97.4% | 96.1% |  |  |
+| 1994 | 4 | 97.6% | 97.0% |  |  |
+| 1993 | 4 | 97.4% | 96.5% |  |  |
+| 1992 | 4 | 97.7% | 96.5% |  |  |

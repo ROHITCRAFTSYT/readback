@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 1935, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 1954, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 88.1 h on 37,938,940 examples (started 2026-10-27, updated 2026-11-07 11:49 UTC)
+- **Trained for:** 89.0 h on 38,310,796 examples (started 2026-10-27, updated 2026-11-07 12:51 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,13 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×2.16
-- `kind:squawk` ×1.65
-- `kind:runway` ×1.56
-- `kind:cleared_to_land` ×1.54
-- `noise:truncate` ×1.44
-- `noise:misheard` ×1.11
-- `kind:cleared_for_takeoff` ×1.1
+- `kind:squawk` ×2.04
+- `kind:line_up` ×1.87
+- `kind:frequency` ×1.62
+- `noise:truncate` ×1.43
+- `noise:misheard` ×1.26
+- `kind:cleared_for_takeoff` ×1.25
+- `noise:hesitation` ×1.18
+- `kind:runway` ×1.07
 
 ## Daily fresh checks
 
@@ -76,18 +77,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 1935 | 4 | 97.7% | 96.0% |  |  |
-| 1934 | 4 | 97.7% | 95.6% |  |  |
-| 1933 | 4 | 97.6% | 95.6% |  |  |
-| 1932 | 4 | 97.7% | 96.5% |  |  |
-| 1931 | 4 | 97.9% | 96.0% |  |  |
-| 1930 | 4 | 97.5% | 95.6% |  |  |
-| 1929 | 4 | 97.5% | 96.5% |  |  |
-| 1928 | 4 | 97.9% | 96.1% |  |  |
-| 1927 | 4 | 97.4% | 96.5% |  |  |
-| 1926 | 4 | 97.5% | 97.0% |  |  |
-| 1925 | 4 | 97.7% | 98.5% |  |  |
-| 1924 | 4 | 97.5% | 96.5% |  |  |
-| 1923 | 4 | 97.5% | 97.0% |  |  |
-| 1922 | 4 | 97.7% | 95.6% |  |  |
-| 1921 | 4 | 97.8% | 96.5% |  |  |
+| 1954 | 4 | 97.4% | 97.0% |  |  |
+| 1953 | 4 | 97.5% | 96.0% |  |  |
+| 1952 | 4 | 97.5% | 96.5% |  |  |
+| 1951 | 4 | 97.8% | 95.5% |  |  |
+| 1950 | 4 | 97.7% | 95.5% |  |  |
+| 1949 | 4 | 97.6% | 97.5% |  |  |
+| 1948 | 4 | 97.7% | 96.5% |  |  |
+| 1947 | 4 | 97.5% | 96.5% |  |  |
+| 1946 | 4 | 97.8% | 96.5% |  |  |
+| 1945 | 4 | 97.7% | 96.5% |  |  |
+| 1944 | 4 | 97.7% | 96.1% |  |  |
+| 1943 | 4 | 97.6% | 97.0% |  |  |
+| 1942 | 4 | 97.8% | 97.0% |  |  |
+| 1941 | 4 | 97.5% | 96.5% |  |  |
+| 1940 | 4 | 97.9% | 97.5% |  |  |

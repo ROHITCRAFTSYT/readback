@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 2945, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 2953, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 129.6 h on 57,697,408 examples (started 2026-10-27, updated 2026-11-12 17:52 UTC)
+- **Trained for:** 130.8 h on 57,853,270 examples (started 2026-10-27, updated 2026-11-13 05:28 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:hold_short` ×1.85
-- `kind:line_up` ×1.65
-- `noise:correction` ×1.47
-- `kind:cleared_for_takeoff` ×1.39
-- `kind:runway` ×1.38
-- `noise:truncate` ×1.15
-- `kind:cleared_to_land` ×1.14
-- `noise:misheard` ×1.03
+- `kind:line_up` ×1.97
+- `noise:hesitation` ×1.46
+- `kind:frequency` ×1.41
+- `noise:repeat` ×1.38
+- `noise:truncate` ×1.27
+- `kind:cleared_for_takeoff` ×1.24
+- `kind:hold_short` ×1.2
+- `noise:correction` ×1.16
 
 ## Daily fresh checks
 
@@ -60,7 +60,6 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Date | Champion round | Synthetic exact | Real (held-out) item F1 | Blind item F1 |
 |---|---|---|---|---|
-| 2026-10-30 | 499 | 98.2% | 98.1% | 91.5% |
 | 2026-10-31 | 499 | 98.6% | 98.1% | 91.5% |
 | 2026-11-01 | 499 | 98.6% | 98.1% | 91.5% |
 | 2026-11-02 | 499 | 98.6% | 98.1% | 91.5% |
@@ -74,11 +73,20 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2026-11-10 | 1233 | 98.8% | 98.1% | 93.3% |
 | 2026-11-11 | 1233 | 98.2% | 98.1% | 93.3% |
 | 2026-11-12 | 1233 | 98.2% | 98.1% | 93.3% |
+| 2026-11-13 | 1233 | 98.8% | 98.1% | 93.3% |
 
 ## Recent rounds
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 2953 | 4 | 97.5% | 96.5% |  |  |
+| 2952 | 4 | 97.8% | 98.0% |  |  |
+| 2951 | 4 | 97.7% | 96.5% |  |  |
+| 2950 | 4 | 97.7% | 96.1% |  |  |
+| 2949 | 4 | 97.4% | 97.0% |  |  |
+| 2948 | 4 | 97.7% | 96.5% |  |  |
+| 2947 | 4 | 97.7% | 95.6% |  |  |
+| 2946 | 4 | 97.8% | 98.5% |  |  |
 | 2945 | 4 | 97.5% | 95.1% |  |  |
 | 2944 | 4 | 97.5% | 95.6% |  |  |
 | 2943 | 4 | 97.6% | 97.5% |  |  |
@@ -86,11 +94,3 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2941 | 4 | 97.7% | 96.5% |  |  |
 | 2940 | 4 | 97.6% | 95.6% |  |  |
 | 2939 | 4 | 97.5% | 97.0% |  |  |
-| 2938 | 4 | 97.7% | 98.0% |  |  |
-| 2937 | 4 | 97.7% | 95.6% |  |  |
-| 2936 | 4 | 97.7% | 96.5% |  |  |
-| 2935 | 4 | 97.5% | 97.0% |  |  |
-| 2934 | 4 | 97.8% | 95.6% |  |  |
-| 2933 | 4 | 97.7% | 97.5% |  |  |
-| 2932 | 4 | 97.8% | 97.5% |  |  |
-| 2931 | 4 | 97.7% | 97.5% |  |  |

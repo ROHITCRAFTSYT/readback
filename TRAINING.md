@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 3804, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 3831, level 4 (stress: every kind of noise at once)
 - **Champion:** round 1233
-- **Trained for:** 168.0 h on 74,495,440 examples (started 2026-10-27, updated 2026-11-18 09:14 UTC)
+- **Trained for:** 168.9 h on 75,023,608 examples (started 2026-10-27, updated 2026-11-18 10:16 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_to_land` ×1.81
-- `kind:heading` ×1.5
-- `kind:direct_to` ×1.41
-- `kind:line_up` ×1.36
-- `kind:altitude` ×1.35
-- `kind:cleared_for_takeoff` ×1.34
-- `kind:runway` ×1.28
-- `kind:frequency` ×1.23
+- `kind:direct_to` ×1.99
+- `kind:hold_short` ×1.77
+- `kind:cleared_for_takeoff` ×1.62
+- `kind:line_up` ×1.52
+- `kind:cleared_to_land` ×1.46
+- `noise:truncate` ×1.19
+- `noise:repeat` ×1.15
+- `noise:station` ×1.05
 
 ## Daily fresh checks
 
@@ -79,18 +79,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 3804 | 4 | 97.8% | 95.5% |  |  |
-| 3803 | 4 | 97.5% | 97.0% |  |  |
-| 3802 | 4 | 97.5% | 96.5% |  |  |
-| 3801 | 4 | 97.7% | 98.5% |  |  |
-| 3800 | 4 | 97.7% | 95.6% |  |  |
-| 3799 | 4 | 97.7% | 98.5% |  |  |
-| 3798 | 4 | 97.5% | 97.5% |  |  |
-| 3797 | 4 | 97.7% | 98.0% |  |  |
-| 3796 | 4 | 97.7% | 97.0% |  |  |
-| 3795 | 4 | 97.3% | 97.0% |  |  |
-| 3794 | 4 | 97.8% | 97.1% |  |  |
-| 3793 | 4 | 97.7% | 96.5% |  |  |
-| 3792 | 4 | 97.9% | 97.5% |  |  |
-| 3791 | 4 | 97.7% | 96.1% |  |  |
-| 3790 | 4 | 97.7% | 96.5% |  |  |
+| 3831 | 4 | 97.9% | 96.5% |  |  |
+| 3830 | 4 | 97.5% | 97.1% |  |  |
+| 3829 | 4 | 97.6% | 96.0% |  |  |
+| 3828 | 4 | 97.7% | 95.5% |  |  |
+| 3827 | 4 | 97.8% | 97.0% |  |  |
+| 3826 | 4 | 97.8% | 97.1% |  |  |
+| 3825 | 4 | 97.5% | 97.1% |  |  |
+| 3824 | 4 | 97.4% | 98.0% |  |  |
+| 3823 | 4 | 97.7% | 95.6% |  |  |
+| 3822 | 4 | 97.5% | 96.5% |  |  |
+| 3821 | 4 | 97.3% | 96.5% |  |  |
+| 3820 | 4 | 97.8% | 96.5% |  |  |
+| 3819 | 4 | 97.6% | 98.0% |  |  |
+| 3818 | 4 | 97.6% | 98.5% |  |  |
+| 3817 | 4 | 97.7% | 95.0% |  |  |

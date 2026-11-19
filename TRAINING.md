@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 4241, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 4262, level 4 (stress: every kind of noise at once)
 - **Champion:** round 4138
-- **Trained for:** 186.1 h on 83,041,936 examples (started 2026-10-27, updated 2026-11-19 17:53 UTC)
+- **Trained for:** 187.0 h on 83,452,744 examples (started 2026-10-27, updated 2026-11-19 18:54 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_to_land` ×1.66
-- `kind:runway` ×1.53
-- `kind:direct_to` ×1.47
-- `kind:frequency` ×1.43
-- `noise:hesitation` ×1.39
-- `noise:truncate` ×1.35
-- `kind:qnh` ×1.34
-- `kind:hold_short` ×1.21
+- `kind:cleared_for_takeoff` ×1.84
+- `kind:cleared_to_land` ×1.58
+- `kind:runway` ×1.4
+- `noise:truncate` ×1.3
+- `kind:heading` ×1.27
+- `noise:misheard` ×1.14
+- `kind:line_up` ×1.11
+- `noise:hesitation` ×1.1
 
 ## Daily fresh checks
 
@@ -60,7 +60,6 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Date | Champion round | Synthetic exact | Real (held-out) item F1 | Blind item F1 |
 |---|---|---|---|---|
-| 2026-11-06 | 1233 | 98.9% | 98.1% | 93.3% |
 | 2026-11-07 | 1233 | 98.2% | 98.1% | 93.3% |
 | 2026-11-08 | 1233 | 98.4% | 98.1% | 93.3% |
 | 2026-11-09 | 1233 | 98.0% | 98.1% | 93.3% |
@@ -74,23 +73,24 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 2026-11-17 | 1233 | 98.7% | 98.1% | 93.3% |
 | 2026-11-18 | 1233 | 98.3% | 98.1% | 93.3% |
 | 2026-11-19 | 1233 | 98.2% | 98.1% | 93.3% |
+| 2026-11-20 | 4138 | 98.4% | 97.6% | 92.5% |
 
 ## Recent rounds
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 4241 | 4 | 97.8% | 96.0% |  |  |
-| 4240 | 4 | 97.6% | 97.0% |  |  |
-| 4239 | 4 | 97.7% | 97.5% |  |  |
-| 4238 | 4 | 97.7% | 96.5% |  |  |
-| 4237 | 4 | 97.7% | 95.5% |  |  |
-| 4236 | 4 | 97.5% | 98.0% |  |  |
-| 4235 | 4 | 97.5% | 98.0% |  |  |
-| 4234 | 4 | 97.5% | 97.5% |  |  |
-| 4233 | 4 | 97.9% | 97.0% |  |  |
-| 4232 | 4 | 97.9% | 94.1% |  |  |
-| 4231 | 4 | 97.7% | 95.6% |  |  |
-| 4230 | 4 | 97.7% | 95.0% |  |  |
-| 4229 | 4 | 97.8% | 96.5% |  |  |
-| 4228 | 4 | 97.7% | 94.6% |  |  |
-| 4227 | 4 | 97.6% | 96.1% |  |  |
+| 4262 | 4 | 97.9% | 96.0% |  |  |
+| 4261 | 4 | 97.7% | 96.1% |  |  |
+| 4260 | 4 | 97.6% | 95.6% |  |  |
+| 4259 | 4 | 97.8% | 97.5% |  |  |
+| 4258 | 4 | 97.7% | 97.5% |  |  |
+| 4257 | 4 | 97.5% | 97.1% |  |  |
+| 4256 | 4 | 97.7% | 95.1% |  |  |
+| 4255 | 4 | 97.8% | 95.6% |  |  |
+| 4254 | 4 | 97.4% | 94.1% |  |  |
+| 4253 | 4 | 97.7% | 95.1% |  |  |
+| 4252 | 4 | 97.8% | 96.1% |  |  |
+| 4251 | 4 | 97.8% | 96.0% |  |  |
+| 4250 | 4 | 97.6% | 96.5% |  |  |
+| 4249 | 4 | 97.4% | 96.1% |  |  |
+| 4248 | 4 | 97.6% | 96.5% |  |  |

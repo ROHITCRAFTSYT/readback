@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 4516, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 4538, level 4 (stress: every kind of noise at once)
 - **Champion:** round 4138
-- **Trained for:** 195.6 h on 88,421,476 examples (started 2026-10-27, updated 2026-11-20 13:08 UTC)
+- **Trained for:** 196.5 h on 88,851,946 examples (started 2026-10-27, updated 2026-11-20 14:10 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×1.79
-- `noise:repeat` ×1.47
-- `noise:truncate` ×1.38
-- `kind:direct_to` ×1.35
-- `kind:squawk` ×1.33
-- `kind:cleared_to_land` ×1.22
+- `kind:direct_to` ×2.49
+- `kind:hold_short` ×1.73
+- `kind:cleared_for_takeoff` ×1.48
+- `kind:cleared_to_land` ×1.38
+- `noise:truncate` ×1.33
+- `kind:line_up` ×1.24
+- `noise:correction` ×1.16
 - `noise:misheard` ×1.14
-- `noise:greeting` ×1.07
 
 ## Daily fresh checks
 
@@ -79,18 +79,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 4516 | 4 | 97.5% | 97.5% |  |  |
-| 4515 | 4 | 97.6% | 98.0% |  |  |
-| 4514 | 4 | 97.8% | 96.0% |  |  |
-| 4513 | 4 | 97.8% | 97.1% |  |  |
-| 4512 | 4 | 97.6% | 95.1% |  |  |
-| 4511 | 4 | 97.6% | 98.0% |  |  |
-| 4510 | 4 | 97.5% | 96.0% |  |  |
-| 4509 | 4 | 97.7% | 96.0% |  |  |
-| 4508 | 4 | 97.8% | 96.5% |  |  |
-| 4507 | 4 | 97.6% | 96.5% |  |  |
-| 4506 | 4 | 97.5% | 96.5% |  |  |
-| 4505 | 4 | 97.7% | 96.1% |  |  |
-| 4504 | 4 | 97.7% | 97.1% |  |  |
-| 4503 | 4 | 97.4% | 94.1% |  |  |
-| 4502 | 4 | 97.7% | 96.5% |  |  |
+| 4538 | 4 | 97.7% | 95.1% |  |  |
+| 4537 | 4 | 97.8% | 97.5% |  |  |
+| 4536 | 4 | 97.5% | 96.1% |  |  |
+| 4535 | 4 | 97.8% | 96.5% |  |  |
+| 4534 | 4 | 97.7% | 96.5% |  |  |
+| 4533 | 4 | 97.8% | 96.5% |  |  |
+| 4532 | 4 | 97.7% | 95.6% |  |  |
+| 4531 | 4 | 97.7% | 98.0% |  |  |
+| 4530 | 4 | 97.7% | 97.1% |  |  |
+| 4529 | 4 | 97.6% | 95.6% |  |  |
+| 4528 | 4 | 97.7% | 97.5% |  |  |
+| 4527 | 4 | 97.5% | 96.5% |  |  |
+| 4526 | 4 | 97.9% | 96.0% |  |  |
+| 4525 | 4 | 97.9% | 96.5% |  |  |
+| 4524 | 4 | 97.8% | 97.0% |  |  |

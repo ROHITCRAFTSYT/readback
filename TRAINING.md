@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 5526, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 5554, level 4 (stress: every kind of noise at once)
 - **Champion:** round 4138
-- **Trained for:** 232.3 h on 108,179,014 examples (started 2026-10-27, updated 2026-11-23 12:07 UTC)
+- **Trained for:** 233.2 h on 108,726,568 examples (started 2026-10-27, updated 2026-11-23 13:09 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_for_takeoff` ×2.22
-- `kind:line_up` ×2.01
-- `kind:hold_short` ×1.79
-- `kind:direct_to` ×1.71
-- `kind:cleared_to_land` ×1.28
-- `noise:truncate` ×1.2
-- `noise:repeat` ×1.03
-- `noise:greeting` ×1.0
+- `kind:hold_short` ×2.26
+- `kind:cleared_for_takeoff` ×1.75
+- `kind:direct_to` ×1.46
+- `noise:truncate` ×1.34
+- `kind:frequency` ×1.24
+- `kind:line_up` ×1.22
+- `noise:misheard` ×1.14
+- `noise:hesitation` ×1.12
 
 ## Daily fresh checks
 
@@ -79,18 +79,18 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
-| 5526 | 4 | 97.5% | 95.6% |  |  |
-| 5525 | 4 | 97.7% | 97.0% |  |  |
-| 5524 | 4 | 97.7% | 96.5% |  |  |
-| 5523 | 4 | 97.5% | 96.5% |  |  |
-| 5522 | 4 | 97.7% | 96.5% |  |  |
-| 5521 | 4 | 97.7% | 96.5% |  |  |
-| 5520 | 4 | 97.8% | 96.5% |  |  |
-| 5519 | 4 | 97.7% | 97.5% |  |  |
-| 5518 | 4 | 97.8% | 95.6% |  |  |
-| 5517 | 4 | 97.8% | 95.6% |  |  |
-| 5516 | 4 | 97.5% | 97.1% |  |  |
-| 5515 | 4 | 97.8% | 95.0% |  |  |
-| 5514 | 4 | 97.4% | 95.1% |  |  |
-| 5513 | 4 | 97.8% | 96.0% |  |  |
-| 5512 | 4 | 97.7% | 96.5% |  |  |
+| 5554 | 4 | 97.6% | 98.0% |  |  |
+| 5553 | 4 | 97.8% | 96.0% |  |  |
+| 5552 | 4 | 97.9% | 96.0% |  |  |
+| 5551 | 4 | 97.9% | 96.5% |  |  |
+| 5550 | 4 | 97.7% | 97.1% |  |  |
+| 5549 | 4 | 97.7% | 98.0% |  |  |
+| 5548 | 4 | 97.8% | 96.1% |  |  |
+| 5547 | 4 | 97.5% | 99.0% |  |  |
+| 5546 | 4 | 97.8% | 95.1% |  |  |
+| 5545 | 4 | 97.5% | 95.1% |  |  |
+| 5544 | 4 | 97.8% | 98.5% |  |  |
+| 5543 | 4 | 97.8% | 96.0% |  |  |
+| 5542 | 4 | 97.6% | 95.1% |  |  |
+| 5541 | 4 | 97.7% | 96.1% |  |  |
+| 5540 | 4 | 97.7% | 95.1% |  |  |

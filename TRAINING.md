@@ -6,9 +6,9 @@ transmissions it never trains on. This page is rewritten after every round by
 `scripts/train_tagger.py`; the live dashboard is the Training tab of
 `uv run readback-ui`.
 
-- **State:** optimal, round 6505, level 4 (stress: every kind of noise at once)
+- **State:** optimal, round 6510, level 4 (stress: every kind of noise at once)
 - **Champion:** round 4138
-- **Trained for:** 279.4 h on 127,322,572 examples (started 2026-10-27, updated 2026-11-27 11:42 UTC)
+- **Trained for:** 280.6 h on 127,420,156 examples (started 2026-10-27, updated 2026-11-27 13:00 UTC)
 
 ## Champion vs the rule-based parser
 
@@ -45,14 +45,14 @@ still scored, as a check on those changes, and is never trained on.
 
 Practice is weighted toward what the champion got wrong in its last probe:
 
-- `kind:cleared_to_land` ×1.75
-- `kind:speed` ×1.46
-- `kind:cleared_for_takeoff` ×1.44
-- `kind:hold_short` ×1.38
-- `kind:direct_to` ×1.24
-- `noise:truncate` ×1.2
-- `kind:qnh` ×1.14
-- `kind:runway` ×1.08
+- `kind:hold_short` ×2.34
+- `noise:repeat` ×1.6
+- `noise:truncate` ×1.51
+- `kind:runway` ×1.24
+- `noise:hesitation` ×1.18
+- `kind:direct_to` ×1.17
+- `kind:squawk` ×1.11
+- `kind:cleared_for_takeoff` ×1.08
 
 ## Daily fresh checks
 
@@ -79,6 +79,11 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 
 | Round | Level | Candidate exact | Real dev F1 | Promoted | Note |
 |---|---|---|---|---|---|
+| 6510 | 4 | 97.7% | 96.5% |  |  |
+| 6509 | 4 | 97.7% | 96.5% |  |  |
+| 6508 | 4 | 97.8% | 95.6% |  |  |
+| 6507 | 4 | 97.7% | 97.0% |  |  |
+| 6506 | 4 | 97.7% | 97.0% |  |  |
 | 6505 | 4 | 97.7% | 96.5% |  |  |
 | 6504 | 4 | 97.7% | 96.6% |  |  |
 | 6503 | 4 | 97.8% | 97.1% |  |  |
@@ -89,8 +94,3 @@ A new date-seeded level-3 test set every day, plus the real transmissions.
 | 6498 | 4 | 97.8% | 98.0% |  |  |
 | 6497 | 4 | 97.5% | 98.0% |  |  |
 | 6496 | 4 | 97.6% | 98.0% |  |  |
-| 6495 | 4 | 97.9% | 95.1% |  |  |
-| 6494 | 4 | 97.6% | 96.1% |  |  |
-| 6493 | 4 | 97.5% | 95.1% |  |  |
-| 6492 | 4 | 97.8% | 95.6% |  |  |
-| 6491 | 4 | 97.9% | 95.6% |  |  |
